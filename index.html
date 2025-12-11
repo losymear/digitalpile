@@ -6,155 +6,55 @@
     <title>数字桩记忆训练</title>
     <style>
         /* --- 基础样式 --- */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f8f8f8;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #007aff;
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .data-status {
-            text-align: center;
-            font-size: 14px;
-            color: #888;
-            margin-bottom: 30px;
-        }
-        .menu-list {
-            list-style: none;
-            padding: 0;
-        }
-        .menu-item {
-            background-color: #f9f9f9;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            padding: 15px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .menu-item:hover {
-            background-color: #e5e5e5;
-        }
-        .menu-item-title {
-            font-weight: bold;
-            font-size: 18px;
-            color: #333;
-        }
-        .menu-item-detail {
-            font-size: 14px;
-            color: #888;
-            margin-top: 5px;
-        }
-        .current-view {
-            display: none;
-            padding-top: 20px;
-        }
-        .current-view.active {
-            display: block;
-        }
-        input[type="number"], button {
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            margin-bottom: 15px;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .input-group input {
-            margin-bottom: 0;
-        }
-        button {
-            background-color: #007aff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        button:hover:not(:disabled) {
-            background-color: #005bb5;
-        }
-        .result-box {
-            background-color: #f0f8ff;
-            border: 1px solid #cfe2ff;
-            padding: 15px;
-            border-radius: 8px;
-            white-space: pre-wrap;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .result-title {
-            font-weight: bold;
-            font-size: 20px;
-            margin-bottom: 10px;
-        }
-        .btn-red {
-            background-color: #ff3b30;
-        }
-        .btn-red:hover:not(:disabled) {
-            background-color: #cc2d26;
-        }
-        .btn-green {
-            background-color: #34c759;
-        }
-        .btn-green:hover:not(:disabled) {
-            background-color: #248a3d;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8f8f8; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        h1 { color: #007aff; font-size: 24px; margin-bottom: 20px; text-align: center; }
+        .data-status { text-align: center; font-size: 14px; color: #888; margin-bottom: 30px; }
         
-        /* --- 设置栏样式 --- */
-        .setting-bar {
-            display: none; /* 默认隐藏，JS控制显示 */
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .setting-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .setting-bar input {
-            text-align: center;
-            padding: 5px;
-            margin-bottom: 0;
-            border: 1px solid #ddd;
-            font-size: 14px;
-        }
-        /* 针对不同输入框的宽度调整 */
+        /* 菜单样式 */
+        .menu-list { list-style: none; padding: 0; }
+        .menu-item { background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; padding: 15px; cursor: pointer; transition: background-color 0.2s; }
+        .menu-item:hover { background-color: #e5e5e5; }
+        .menu-item-title { font-weight: bold; font-size: 18px; color: #333; }
+        .menu-item-detail { font-size: 14px; color: #888; margin-top: 5px; }
+        
+        /* 视图切换 */
+        .current-view { display: none; padding-top: 20px; }
+        .current-view.active { display: block; }
+        
+        /* 输入控件 */
+        input[type="number"], input[type="text"], button { padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 15px; width: 100%; box-sizing: border-box; font-size: 16px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-group input { margin-bottom: 0; }
+        
+        /* 按钮 */
+        button { background-color: #007aff; color: white; border: none; cursor: pointer; transition: background-color 0.2s; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button:hover:not(:disabled) { background-color: #005bb5; }
+        .btn-red { background-color: #ff3b30; }
+        .btn-red:hover:not(:disabled) { background-color: #cc2d26; }
+        .btn-green { background-color: #34c759; }
+        .btn-green:hover:not(:disabled) { background-color: #248a3d; }
+        
+        /* 结果展示 */
+        .result-box { background-color: #f0f8ff; border: 1px solid #cfe2ff; padding: 15px; border-radius: 8px; white-space: pre-wrap; font-size: 16px; margin-bottom: 20px; }
+        .result-title { font-weight: bold; font-size: 20px; margin-bottom: 10px; }
+        
+        /* 设置栏 */
+        .setting-bar { display: none; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; }
+        .setting-content { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .setting-bar input { text-align: center; padding: 5px; margin-bottom: 0; border: 1px solid #ddd; font-size: 14px; }
         .input-short { width: 50px; }
         .input-medium { width: 70px; }
-        .setting-bar label {
-            font-weight: bold;
-            font-size: 14px;
-        }
+        .setting-bar label { font-weight: bold; font-size: 14px; }
+
+        /* --- 默写测试专属样式 --- */
+        .quiz-card { text-align: center; padding: 20px; background: #fff; border: 1px solid #eee; border-radius: 10px; margin-bottom: 20px; }
+        .quiz-number { font-size: 60px; font-weight: bold; color: #007aff; display: block; margin: 10px 0; letter-spacing: 2px; }
+        .quiz-feedback { padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; display: none; }
+        .quiz-correct { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .quiz-wrong { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .quiz-info { font-size: 12px; color: #999; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -164,33 +64,63 @@
 
         <div id="menu-page" class="current-view active">
             <ul class="menu-list">
-                <li class="menu-item" onclick="handleMenuSelect(0)">
+                <li class="menu-item" onclick="showDrillRangeUI()">
                     <div class="menu-item-title">🧠 1. 单次随机训练</div>
-                    <div class="menu-item-detail">设定数字范围，逐个随机训练</div>
+                    <div class="menu-item-detail">看数字 -> 脑海联想 -> 看答案核对</div>
                 </li>
-                <li class="menu-item" onclick="handleMenuSelect(1)">
-                    <div class="menu-item-title">🔢 2. 多重数字记忆</div>
-                    <div class="menu-item-detail">输入数量 N，随机 N 个数字组进行记忆</div>
+                <li class="menu-item" onclick="showQuizRangeUI()">
+                    <div class="menu-item-title">📝 2. 默写测试 (新增)</div>
+                    <div class="menu-item-detail">看数字 -> 输入文字 -> 系统自动判分</div>
                 </li>
-                <li class="menu-item" onclick="handleMenuSelect(2)">
-                    <div class="menu-item-title">🔍 3. 查询桩子</div>
-                    <div class="menu-item-detail">输入数字，立即显示对应编码</div>
+                <li class="menu-item" onclick="showInputPage('multi')">
+                    <div class="menu-item-title">🔢 3. 多重数字记忆</div>
+                    <div class="menu-item-detail">一次性记忆 N 个数字</div>
+                </li>
+                <li class="menu-item" onclick="showInputPage('query')">
+                    <div class="menu-item-title">🔍 4. 查询桩子</div>
+                    <div class="menu-item-detail">查数字对应的编码</div>
                 </li>
             </ul>
         </div>
 
-        <div id="range-page" class="current-view">
-            <div class="result-title">设定训练范围</div>
-            <div style="font-size: 14px; color: #666; margin-bottom: 10px;">请输入范围 (例如 133 - 255)</div>
-            
+        <div id="drill-range-page" class="current-view">
+            <div class="result-title">随机训练 - 设定范围</div>
+            <div style="font-size: 14px; color: #666; margin-bottom: 10px;">输入数字范围 (如 100-999)</div>
             <div class="input-group">
-                <input type="number" id="range-min" placeholder="最小值" value="100">
+                <input type="number" id="drill-min" placeholder="最小值" value="100">
                 <span style="align-self: center;">-</span>
-                <input type="number" id="range-max" placeholder="最大值" value="999">
+                <input type="number" id="drill-max" placeholder="最大值" value="999">
+            </div>
+            <button onclick="handleDrillStart()">开始训练</button>
+            <button onclick="showMenuUI()">返回主菜单</button>
+        </div>
+
+        <div id="quiz-range-page" class="current-view">
+            <div class="result-title">默写测试 - 设定范围</div>
+            <div style="font-size: 14px; color: #666; margin-bottom: 10px;">输入数字范围，系统将随机出题</div>
+            <div class="input-group">
+                <input type="number" id="quiz-min-setup" placeholder="最小值" value="100">
+                <span style="align-self: center;">-</span>
+                <input type="number" id="quiz-max-setup" placeholder="最大值" value="999">
+            </div>
+            <button onclick="handleQuizStart()">开始测试</button>
+            <button onclick="showMenuUI()">返回主菜单</button>
+        </div>
+
+        <div id="quiz-working-page" class="current-view">
+            <div class="quiz-card">
+                <div class="quiz-info">请默写下方数字对应的桩子</div>
+                <span class="quiz-number" id="quiz-question-num">000</span>
+                <div class="quiz-info">(范围: <span id="quiz-range-label"></span>)</div>
             </div>
 
-            <button onclick="handleRangeSubmit()">开始训练</button>
-            <button onclick="showMenuUI()">返回主菜单</button>
+            <div id="quiz-result-box" class="quiz-feedback"></div>
+
+            <input type="text" id="quiz-answer-input" placeholder="输入桩子 (如: 议政厅)" onkeydown="if(event.key==='Enter') checkQuizAnswer()">
+            
+            <button id="quiz-submit-btn" onclick="checkQuizAnswer()">提交</button>
+            <button id="quiz-next-btn" class="btn-green" style="display:none;" onclick="nextQuizRound()">下一个</button>
+            <button onclick="showMenuUI()" style="margin-top: 10px; background-color: #666;">退出测试</button>
         </div>
 
         <div id="input-page" class="current-view">
@@ -205,400 +135,377 @@
             <div class="result-box" id="result-page-content"></div>
             
             <div id="result-setting-bar" class="setting-bar">
-                
                 <div id="setting-multi-content" class="setting-content" style="display:none;">
                     <label>下轮数量:</label>
                     <input type="number" id="next-count-input" class="input-short" min="1" max="20" value="5">
                     <span>个</span>
                 </div>
-
                 <div id="setting-single-content" class="setting-content" style="display:none;">
                     <label>范围:</label>
                     <input type="number" id="next-min-input" class="input-medium" placeholder="Min">
                     <span>-</span>
                     <input type="number" id="next-max-input" class="input-medium" placeholder="Max">
                 </div>
-
             </div>
 
             <button id="result-view-next-btn" class="btn-green" style="display: none;" onclick="handleViewNext()">查看下一个 ></button>
-            
             <button id="result-next-btn" class="btn-red" onclick="handleResultNext()">继续此项操作</button>
             <button onclick="showMenuUI()">返回主菜单</button>
         </div>
+
     </div>
 
     <script>
         // ======================================================
-        // Web 实现 JavaScript 逻辑
+        // 数据与状态
         // ======================================================
-
         const JSON_URL = "https://raw.githubusercontent.com/losymear/cognition/refs/heads/main/files/json/1000code.json";
         const CACHE_KEY = "1000code_cache";
-
-        let number_encodings = {};
         const DEFAULT_MIN = 100;
         const DEFAULT_MAX = 999;
+        let number_encodings = {};
+
+        // 页面元素引用
+        const views = {
+            menu: document.getElementById('menu-page'),
+            drillRange: document.getElementById('drill-range-page'),
+            quizRange: document.getElementById('quiz-range-page'),
+            quizWork: document.getElementById('quiz-working-page'),
+            input: document.getElementById('input-page'),
+            result: document.getElementById('result-page')
+        };
         
+        // 全局状态 (用于记录上一次的范围，方便连贯操作)
+        let lastDrillMin = DEFAULT_MIN;
+        let lastDrillMax = DEFAULT_MAX;
+        let lastQuizMin = DEFAULT_MIN;
+        let lastQuizMax = DEFAULT_MAX;
+        
+        let currentQuizTargetNum = null; // 当前默写测试的数字
         let currentPageType = ""; 
-        let nextActionCallback = null; 
-        
-        // --- 核心状态变量 ---
+        let nextActionCallback = null;
         let currentQueryNumber = null;
-        let currentDrillMin = DEFAULT_MIN; 
-        let currentDrillMax = DEFAULT_MAX; 
-        let currentMultiCount = 5; 
+        let currentMultiCount = 5;
 
-        // --- DOM 元素引用 ---
-        const menuPage = document.getElementById('menu-page');
-        const inputPage = document.getElementById('input-page');
-        const rangePage = document.getElementById('range-page'); 
-        const resultPage = document.getElementById('result-page');
-        const dataStatus = document.getElementById('data-status');
-        const mainTitle = document.getElementById('main-title');
+        // ======================================================
+        // 核心工具函数
+        // ======================================================
+        function toast(message) { console.log(message); }
 
-        const inputPageTitle = document.getElementById('input-page-title');
-        const inputField = document.getElementById('input-field');
-        const inputSubmitBtn = document.getElementById('input-submit-btn');
-
-        const rangeMinInput = document.getElementById('range-min'); 
-        const rangeMaxInput = document.getElementById('range-max'); 
-
-        const resultPageTitle = document.getElementById('result-page-title');
-        const resultPageContent = document.getElementById('result-page-content');
-        const resultNextBtn = document.getElementById('result-next-btn');
-        const resultViewNextBtn = document.getElementById('result-view-next-btn');
-        
-        // 设置栏引用
-        const resultSettingBar = document.getElementById('result-setting-bar');
-        const settingMultiContent = document.getElementById('setting-multi-content');
-        const settingSingleContent = document.getElementById('setting-single-content');
-        const nextCountInput = document.getElementById('next-count-input');
-        const nextMinInput = document.getElementById('next-min-input');
-        const nextMaxInput = document.getElementById('next-max-input');
-
-        // --- 核心辅助函数 ---
-
-        function toast(message) {
-            console.log("Toast:", message);
+        function hideAllViews() {
+            Object.values(views).forEach(el => el.classList.remove('active'));
+            // 重置一些通用的子元素显示状态
+            document.getElementById('result-setting-bar').style.display = 'none';
         }
 
         function generateRandomNumber(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
-            const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-            return String(randomNumber);
+            return String(Math.floor(Math.random() * (max - min + 1)) + min);
         }
 
         function getEncoding(numStr) {
-            return number_encodings[numStr] || `[${numStr} 编码缺失!]`;
+            return number_encodings[numStr] || `[缺失]`;
         }
 
-        // --- 界面切换逻辑 ---
-
-        function hideAllViews() {
-            menuPage.classList.remove('active');
-            inputPage.classList.remove('active');
-            resultPage.classList.remove('active');
-            rangePage.classList.remove('active');
-            
-            // 默认隐藏结果页的所有工具栏
-            resultSettingBar.style.display = 'none';
-            settingMultiContent.style.display = 'none';
-            settingSingleContent.style.display = 'none';
+        function checkDataLoaded() {
+            if (!Object.keys(number_encodings).length) {
+                alert("⚠️ 数据未加载，请检查网络");
+                return false;
+            }
+            return true;
         }
 
+        // ======================================================
+        // 页面跳转逻辑
+        // ======================================================
         function showMenuUI() {
             hideAllViews();
-            menuPage.classList.add('active');
+            views.menu.classList.add('active');
             const statusText = Object.keys(number_encodings).length ? "已加载" : "缺失";
-            mainTitle.textContent = `数字桩记忆训练`;
-            dataStatus.textContent = `数据: ${statusText}`;
+            document.getElementById('data-status').textContent = `数据: ${statusText}`;
         }
 
-        function showRangePageUI() {
+        // 1. 单次训练 - 范围页
+        function showDrillRangeUI() {
+            if(!checkDataLoaded()) return;
             hideAllViews();
-            rangePage.classList.add('active');
-            rangeMinInput.value = currentDrillMin;
-            rangeMaxInput.value = currentDrillMax;
+            views.drillRange.classList.add('active');
+            document.getElementById('drill-min').value = lastDrillMin;
+            document.getElementById('drill-max').value = lastDrillMax;
         }
 
+        // 2. 默写测试 - 范围页 (独立)
+        function showQuizRangeUI() {
+            if(!checkDataLoaded()) return;
+            hideAllViews();
+            views.quizRange.classList.add('active');
+            document.getElementById('quiz-min-setup').value = lastQuizMin;
+            document.getElementById('quiz-max-setup').value = lastQuizMax;
+        }
+
+        // 3. 通用输入页 (多重/查询)
         function showInputPage(type) {
+            if(!checkDataLoaded()) return;
             currentPageType = type;
             hideAllViews();
-            inputPage.classList.add('active');
-
-            const isMulti = type === "multi";
-            const rangeInfo = `(当前范围: ${currentDrillMin}-${currentDrillMax})`;
-            const pageTitle = isMulti ? "输入多重记忆数量 N" : "输入查询数字";
-            const placeholder = isMulti ? "请输入数量 N (1-20)" : `请输入 ${DEFAULT_MIN} 到 ${DEFAULT_MAX} 的数字`;
-
-            inputPageTitle.innerHTML = `${pageTitle} <div style='font-size:12px;color:#888;font-weight:normal;margin-top:5px;'>${rangeInfo}</div>`;
+            views.input.classList.add('active');
             
-            inputField.placeholder = placeholder;
-            inputField.value = "";
-            inputField.setAttribute('min', isMulti ? 1 : DEFAULT_MIN);
-            inputField.setAttribute('max', isMulti ? 20 : DEFAULT_MAX);
-            inputField.focus();
+            const field = document.getElementById('input-field');
+            const title = document.getElementById('input-page-title');
+            
+            field.value = "";
+            field.focus();
+
+            if (type === 'multi') {
+                title.textContent = "多重记忆 - 输入数量";
+                field.placeholder = "请输入 1-20";
+            } else {
+                title.textContent = "查询编码 - 输入数字";
+                field.placeholder = "请输入数字 (00-999)";
+            }
             validateInput();
         }
+
+        // ======================================================
+        // 业务逻辑：默写测试 (Quiz)
+        // ======================================================
         
-        function validateInput() {
-            const input = inputField.value.trim();
-            inputSubmitBtn.disabled = input === "";
-        }
-
-        function showResultUI(title, message, nextAction) {
-            nextActionCallback = nextAction;
+        function handleQuizStart() {
+            const min = parseInt(document.getElementById('quiz-min-setup').value);
+            const max = parseInt(document.getElementById('quiz-max-setup').value);
+            
+            if (isNaN(min) || isNaN(max) || min > max) {
+                alert("请输入有效的范围");
+                return;
+            }
+            
+            // 保存状态
+            lastQuizMin = min;
+            lastQuizMax = max;
+            
+            // 进入测试页
             hideAllViews();
-            resultPage.classList.add('active');
+            views.quizWork.classList.add('active');
+            nextQuizRound();
+        }
 
-            resultPageTitle.textContent = title;
-            resultPageContent.textContent = message;
+        function nextQuizRound() {
+            currentQuizTargetNum = generateRandomNumber(lastQuizMin, lastQuizMax);
+            
+            // UI 重置
+            document.getElementById('quiz-question-num').textContent = currentQuizTargetNum;
+            document.getElementById('quiz-range-label').textContent = `${lastQuizMin} - ${lastQuizMax}`;
+            
+            const input = document.getElementById('quiz-answer-input');
+            input.value = "";
+            input.disabled = false;
+            input.focus();
+            
+            const feedback = document.getElementById('quiz-result-box');
+            feedback.style.display = 'none';
+            feedback.className = 'quiz-feedback'; // remove colors
+            
+            document.getElementById('quiz-submit-btn').style.display = 'block';
+            document.getElementById('quiz-next-btn').style.display = 'none';
+        }
 
-            resultViewNextBtn.style.display = 'none';
-
-            if (nextAction) {
-                resultNextBtn.textContent = "继续下一组"; 
-                resultNextBtn.style.display = 'block';
-                resultNextBtn.classList.add('btn-red');
+        function checkQuizAnswer() {
+            const inputEl = document.getElementById('quiz-answer-input');
+            const val = inputEl.value.trim();
+            if(!val) return;
+            
+            const correctString = getEncoding(currentQuizTargetNum); // 比如 "易中天, 议政厅"
+            
+            // 模糊匹配：分割逗号（中英文）或空格
+            // 比如标准答案是 "A, B"，用户输入 "A" 或 "B" 都算对
+            const answers = correctString.split(/,|，|\s+/).map(s => s.trim()).filter(s => s);
+            const isCorrect = answers.includes(val);
+            
+            const feedback = document.getElementById('quiz-result-box');
+            feedback.style.display = 'block';
+            
+            if (isCorrect) {
+                feedback.className = 'quiz-feedback quiz-correct';
+                feedback.innerHTML = `<strong>🎉 回答正确！</strong><br>你的答案：${val}<br>完整编码：${correctString}`;
             } else {
-                resultNextBtn.style.display = 'none';
+                feedback.className = 'quiz-feedback quiz-wrong';
+                feedback.innerHTML = `<strong>❌ 回答错误</strong><br>你的答案：${val}<br>正确答案：<strong>${correctString}</strong>`;
             }
+            
+            // 锁定并显示下一步
+            inputEl.disabled = true;
+            document.getElementById('quiz-submit-btn').style.display = 'none';
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.style.display = 'block';
+            nextBtn.focus();
         }
 
-        // --- 核心功能实现 ---
-
-        function handleRangeSubmit() {
-            const minVal = parseInt(rangeMinInput.value);
-            const maxVal = parseInt(rangeMaxInput.value);
-
-            if (isNaN(minVal) || isNaN(maxVal)) {
-                alert("请输入有效的数字");
-                return;
-            }
-            if (minVal > maxVal) {
-                alert("最小值不能大于最大值！");
-                return;
-            }
-            currentDrillMin = minVal;
-            currentDrillMax = maxVal;
-            drillRandomNumber(currentDrillMin, currentDrillMax);
+        // ======================================================
+        // 业务逻辑：单次随机 (Drill)
+        // ======================================================
+        function handleDrillStart() {
+            const min = parseInt(document.getElementById('drill-min').value);
+            const max = parseInt(document.getElementById('drill-max').value);
+            
+            if (isNaN(min) || isNaN(max) || min > max) { alert("范围无效"); return; }
+            
+            lastDrillMin = min;
+            lastDrillMax = max;
+            
+            runDrillLogic(min, max);
         }
 
-        function drillRandomNumber(min, max) {
-            if (!Object.keys(number_encodings).length) {
-                alert("⚠️ 错误: 数据未加载。");
-                return;
-            }
-            const targetNumber = generateRandomNumber(min, max);
-            const correctAnswer = getEncoding(targetNumber);
+        function runDrillLogic(min, max) {
+            const target = generateRandomNumber(min, max);
+            const answer = getEncoding(target);
 
             setTimeout(() => {
-                const userConfirmed = confirm(`🧠 随机数字: ${targetNumber}\n\n范围: ${min} - ${max}\n\n请默想对应的图像编码。\n准备好查看答案了吗？`);
-
-                if (userConfirmed) {
-                    showResultUI(`✅ ${targetNumber} 的编码`,
-                        `数字: ${targetNumber}\n\n编码: ${correctAnswer}`,
-                        
-                        // --- 关键回调：单次训练的继续逻辑 ---
-                        () => {
-                            // 读取结果页上的输入框
-                            const newMin = parseInt(nextMinInput.value);
-                            const newMax = parseInt(nextMaxInput.value);
-                            
-                            if (isNaN(newMin) || isNaN(newMax) || newMin > newMax) {
-                                alert("范围无效，请重新输入");
-                                return;
-                            }
-                            // 更新全局状态，并开始下一轮
-                            currentDrillMin = newMin;
-                            currentDrillMax = newMax;
-                            drillRandomNumber(newMin, newMax);
+                const conf = confirm(`🧠 随机数字: ${target}\n(范围 ${min}-${max})\n\n请联想...\n点击确定查看答案。`);
+                if(conf) {
+                    showResult(`✅ ${target} 的编码`, `数字: ${target}\n编码: ${answer}`, () => {
+                        // 续杯逻辑：重新读取结果页面的设置框
+                        const newMin = parseInt(document.getElementById('next-min-input').value);
+                        const newMax = parseInt(document.getElementById('next-max-input').value);
+                        if (!isNaN(newMin)) { 
+                            lastDrillMin = newMin; 
+                            lastDrillMax = newMax;
+                            runDrillLogic(newMin, newMax);
                         }
-                    );
-
-                    // --- 显示范围设置栏 ---
-                    resultSettingBar.style.display = 'block';
-                    settingSingleContent.style.display = 'flex'; // 显示单次设置内容
-                    settingMultiContent.style.display = 'none';  // 隐藏多重设置内容
+                    });
                     
-                    // 填入当前值
-                    nextMinInput.value = min;
-                    nextMaxInput.value = max;
-
+                    // 显示单次训练专用的设置栏
+                    document.getElementById('result-setting-bar').style.display = 'block';
+                    document.getElementById('setting-single-content').style.display = 'flex';
+                    document.getElementById('setting-multi-content').style.display = 'none';
+                    document.getElementById('next-min-input').value = min;
+                    document.getElementById('next-max-input').value = max;
                 } else {
                     showMenuUI();
                 }
-            }, 100);
+            }, 50);
         }
 
-        function drillMultipleNumbers(N) {
-            const N_val = parseInt(N);
-            const numbers = new Set();
-            
-            let attempts = 0;
-            while (numbers.size < N_val && attempts < 1000) {
-                numbers.add(generateRandomNumber(currentDrillMin, currentDrillMax));
-                attempts++;
-            }
-            
-            const numberList = Array.from(numbers);
-            const formattedList = numberList.map(numStr => `${numStr}: ${getEncoding(numStr)}`).join('\n');
-            const plainNumberList = numberList.join(', ');
-            const rangeText = `(范围: ${currentDrillMin}-${currentDrillMax})`;
-
-            setTimeout(() => {
-                const userConfirmed = confirm(`🧠 ${numbers.size} 个数字随机训练 ${rangeText}\n\n请尝试联想并记忆这组数字：\n**${plainNumberList}**\n\n准备好了吗？\n\n点击“确定”查看答案，点击“取消”返回菜单。`);
-
-                if (userConfirmed) {
-                    showResultUI("✅ 编码答案",
-                        `**数字列表:**\n${formattedList}`,
-                        
-                        // --- 关键回调：多重训练的继续逻辑 ---
-                        () => {
-                            const nextN = parseInt(nextCountInput.value);
-                            if (nextN > 0 && nextN <= 20) {
-                                drillMultipleNumbers(nextN);
-                            } else {
-                                alert("请输入 1-20 之间的有效数量");
-                            }
-                        }
-                    );
-                    
-                    // --- 显示数量设置栏 ---
-                    resultSettingBar.style.display = 'block';
-                    settingMultiContent.style.display = 'flex'; // 显示多重设置内容
-                    settingSingleContent.style.display = 'none'; // 隐藏单次设置内容
-                    
-                    nextCountInput.value = N_val; 
-
-                } else {
-                    showMenuUI();
-                }
-            }, 100);
-        }
-
-        function handleViewNext() {
-            if (currentQueryNumber === null) return;
-            let nextNum = currentQueryNumber + 1;
-            if (nextNum > DEFAULT_MAX) {
-                alert("已经到达最大数字！");
-                return;
-            }
-            currentQueryNumber = nextNum;
-            const numStr = String(nextNum);
-            const encoding = getEncoding(numStr);
-            showResultUI(`🔎 ${numStr} 对应的编码`,
-                `数字: ${numStr}\n\n编码: ${encoding}`,
-                () => showInputPage("query")
-            );
-            resultViewNextBtn.style.display = 'block';
-        }
-
-        // --- 事件处理函数 ---
-
-        function handleMenuSelect(index) {
-            if (!Object.keys(number_encodings).length) {
-                alert("⚠️ 错误: 数据未加载。");
-                return;
-            }
-            switch (index) {
-                case 0: showRangePageUI(); break; 
-                case 1: showInputPage("multi"); break;
-                case 2: showInputPage("query"); break;
-            }
+        // ======================================================
+        // 业务逻辑：其他 (Input/Result/Data)
+        // ======================================================
+        function validateInput() {
+            const val = document.getElementById('input-field').value;
+            document.getElementById('input-submit-btn').disabled = (val.trim() === "");
         }
 
         function handleInputSubmit() {
-            const input = inputField.value.trim();
-            if (input === "") { toast("输入不能为空"); return; }
+            const val = document.getElementById('input-field').value.trim();
+            if (!val) return;
 
-            if (currentPageType === "multi") {
-                const N = parseInt(input);
-                if (N > 0 && N <= 20) {
-                    currentMultiCount = N;
-                    drillMultipleNumbers(currentMultiCount);
+            if (currentPageType === 'multi') {
+                const n = parseInt(val);
+                if (n > 0 && n <= 20) {
+                    currentMultiCount = n;
+                    runMultiLogic(n);
                 } else {
-                    alert("错误: 请输入 1 到 20 之间的有效数字。");
-                    showInputPage("multi");
+                    alert("请输入 1-20");
                 }
-            } else if (currentPageType === "query") {
-                const numStr = input;
-                const num = parseInt(numStr);
-                if (num >= DEFAULT_MIN && num <= DEFAULT_MAX) {
-                    currentQueryNumber = num;
-                    const encoding = getEncoding(numStr);
-                    showResultUI(`🔎 ${numStr} 对应的编码`,
-                        `数字: ${numStr}\n\n编码: ${encoding}`,
-                        () => showInputPage("query")
-                    );
-                    resultViewNextBtn.style.display = 'block';
+            } else if (currentPageType === 'query') {
+                runQueryLogic(val);
+            }
+        }
+
+        function runMultiLogic(N) {
+            const numbers = [];
+            for(let i=0; i<N; i++) numbers.push(generateRandomNumber(lastDrillMin, lastDrillMax));
+            
+            const listStr = numbers.join(', ');
+            const answerStr = numbers.map(n => `${n}: ${getEncoding(n)}`).join('\n');
+            
+            setTimeout(() => {
+                const conf = confirm(`记忆 ${N} 个数字:\n${listStr}\n\n准备好查看答案吗？`);
+                if(conf) {
+                    showResult("✅ 多重记忆答案", `**数字:**\n${answerStr}`, () => {
+                        const nextN = parseInt(document.getElementById('next-count-input').value);
+                        runMultiLogic(nextN);
+                    });
+                    // 显示多重专用的设置栏
+                    document.getElementById('result-setting-bar').style.display = 'block';
+                    document.getElementById('setting-single-content').style.display = 'none';
+                    document.getElementById('setting-multi-content').style.display = 'flex';
+                    document.getElementById('next-count-input').value = N;
                 } else {
-                    alert(`⚠️ 数字错误: 请输入有效的 ${DEFAULT_MIN} 到 ${DEFAULT_MAX} 的数字。`);
-                    showInputPage("query");
+                    showMenuUI();
                 }
+            }, 50);
+        }
+
+        function runQueryLogic(numStr) {
+            const n = parseInt(numStr);
+            // 简单的范围检查
+            currentQueryNumber = n;
+            const ans = getEncoding(numStr);
+            
+            showResult(`🔎 查询: ${numStr}`, `编码: ${ans}`, () => showInputPage('query'));
+            document.getElementById('result-view-next-btn').style.display = 'block';
+        }
+
+        function showResult(title, text, nextCallback) {
+            hideAllViews();
+            views.result.classList.add('active');
+            document.getElementById('result-page-title').textContent = title;
+            document.getElementById('result-page-content').textContent = text;
+            document.getElementById('result-view-next-btn').style.display = 'none'; // reset
+            
+            nextActionCallback = nextCallback;
+            const btn = document.getElementById('result-next-btn');
+            if (nextCallback) {
+                btn.style.display = 'block';
+                btn.textContent = "继续下一组";
+            } else {
+                btn.style.display = 'none';
             }
         }
 
         function handleResultNext() {
-            if (nextActionCallback) {
-                nextActionCallback();
-            } else {
-                showMenuUI();
-            }
+            if(nextActionCallback) nextActionCallback();
+            else showMenuUI();
         }
 
-        // --- 加载逻辑 ---
-        function loadFromCache() {
-            const jsonStr = localStorage.getItem(CACHE_KEY);
-            if (jsonStr) {
+        function handleViewNext() {
+             if (currentQueryNumber === null) return;
+             runQueryLogic(String(currentQueryNumber + 1));
+        }
+
+        // ======================================================
+        // 数据加载
+        // ======================================================
+        async function initData() {
+            // 1. 尝试本地缓存
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
                 try {
-                    number_encodings = JSON.parse(jsonStr);
-                    toast("使用本地缓存数据。");
-                    return true;
-                } catch (e) {
-                    localStorage.removeItem(CACHE_KEY);
-                    return false;
-                }
+                    number_encodings = JSON.parse(cached);
+                    console.log("Loaded from cache");
+                } catch(e) { localStorage.removeItem(CACHE_KEY); }
             }
-            return false;
-        }
+            showMenuUI();
 
-        async function updateFromRemote(isInitialLoad) {
-            if (isInitialLoad) dataStatus.textContent = "数据: 正在加载...";
+            // 2. 远程更新
             try {
-                const response = await fetch(JSON_URL);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const newEncodings = await response.json();
-                if (JSON.stringify(newEncodings) !== JSON.stringify(number_encodings)) {
-                    number_encodings = newEncodings;
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(newEncodings));
-                    dataStatus.textContent = "数据: 已加载";
+                document.getElementById('data-status').textContent = "数据: 更新中...";
+                const res = await fetch(JSON_URL);
+                const json = await res.json();
+                number_encodings = json;
+                localStorage.setItem(CACHE_KEY, JSON.stringify(json));
+                document.getElementById('data-status').textContent = "数据: 已加载 (最新)";
+            } catch(e) {
+                console.error(e);
+                if(!Object.keys(number_encodings).length) {
+                    document.getElementById('data-status').textContent = "数据: 加载失败";
+                } else {
+                    document.getElementById('data-status').textContent = "数据: 已加载 (缓存)";
                 }
-                return true;
-            } catch (error) {
-                console.error("加载失败:", error);
-                if (isInitialLoad && !Object.keys(number_encodings).length) {
-                    dataStatus.textContent = "数据: 缺失";
-                    alert("无法加载数据，请检查网络。");
-                }
-                return false;
             }
         }
 
-        async function init() {
-            const cacheLoaded = loadFromCache();
-            if (cacheLoaded) {
-                showMenuUI();
-                await updateFromRemote(false);
-            } else {
-                await updateFromRemote(true);
-                showMenuUI();
-            }
-        }
-
-        init();
+        initData();
     </script>
 </body>
 </html>
