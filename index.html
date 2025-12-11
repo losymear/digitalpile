@@ -55,6 +55,18 @@
         .quiz-correct { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .quiz-wrong { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .quiz-info { font-size: 12px; color: #999; margin-bottom: 20px; }
+
+        /* 新增的清除缓存按钮样式 */
+        .clear-cache-btn { 
+            margin-top: 25px; 
+            background-color: #6c757d; /* 灰色 */
+            color: white; 
+            font-size: 14px;
+            padding: 8px;
+        }
+        .clear-cache-btn:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -81,6 +93,9 @@
                     <div class="menu-item-detail">查数字对应的编码</div>
                 </li>
             </ul>
+            <button class="clear-cache-btn" onclick="clearCacheAndReload()">
+                🔄 清除缓存并重新加载数据
+            </button>
         </div>
 
         <div id="drill-range-page" class="current-view">
@@ -182,7 +197,7 @@
         let lastQuizMax = DEFAULT_MAX;
         
         let currentQuizTargetNum = null; // 当前默写测试的数字
-        let currentPageType = ""; 
+        let currentPageType = "";	
         let nextActionCallback = null;
         let currentQueryNumber = null;
         let currentMultiCount = 5;
@@ -201,11 +216,13 @@
         function generateRandomNumber(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
-            return String(Math.floor(Math.random() * (max - min + 1)) + min);
+            return String(Math.floor(Math.random() * (max - min + 1)) + min).padStart(3, '0'); // 确保 3 位数字，如 "000"
         }
 
         function getEncoding(numStr) {
-            return number_encodings[numStr] || `[缺失]`;
+            // 确保查询的键是三位字符串，例如 99 -> "099"
+            const paddedNumStr = String(numStr).padStart(3, '0');
+            return number_encodings[paddedNumStr] || `[缺失]`;
         }
 
         function checkDataLoaded() {
@@ -222,7 +239,8 @@
         function showMenuUI() {
             hideAllViews();
             views.menu.classList.add('active');
-            const statusText = Object.keys(number_encodings).length ? "已加载" : "缺失";
+            const dataKeys = Object.keys(number_encodings).length;
+            const statusText = dataKeys > 0 ? `已加载 (${dataKeys} 条)` : "缺失";
             document.getElementById('data-status').textContent = `数据: ${statusText}`;
         }
 
@@ -295,7 +313,7 @@
             
             // UI 重置
             document.getElementById('quiz-question-num').textContent = currentQuizTargetNum;
-            document.getElementById('quiz-range-label').textContent = `${lastQuizMin} - ${lastQuizMax}`;
+            document.getElementById('quiz-range-label').textContent = `${lastQuizMin.toString().padStart(3, '0')} - ${lastQuizMax.toString().padStart(3, '0')}`;
             
             const input = document.getElementById('quiz-answer-input');
             input.value = "";
@@ -361,16 +379,20 @@
             const answer = getEncoding(target);
 
             setTimeout(() => {
-                const conf = confirm(`🧠 随机数字: ${target}\n(范围 ${min}-${max})\n\n请联想...\n点击确定查看答案。`);
+                const conf = confirm(`🧠 随机数字: ${target}\n(范围 ${min.toString().padStart(3, '0')}-${max.toString().padStart(3, '0')})\n\n请联想...\n点击确定查看答案。`);
                 if(conf) {
                     showResult(`✅ ${target} 的编码`, `数字: ${target}\n编码: ${answer}`, () => {
                         // 续杯逻辑：重新读取结果页面的设置框
                         const newMin = parseInt(document.getElementById('next-min-input').value);
                         const newMax = parseInt(document.getElementById('next-max-input').value);
-                        if (!isNaN(newMin)) { 
-                            lastDrillMin = newMin; 
+                        // 简单检查有效性
+                        if (!isNaN(newMin) && !isNaN(newMax) && newMin <= newMax) {	
+                            lastDrillMin = newMin;	
                             lastDrillMax = newMax;
                             runDrillLogic(newMin, newMax);
+                        } else {
+                             // 如果设置无效，就用上次的范围继续
+                             runDrillLogic(lastDrillMin, lastDrillMax);
                         }
                     });
                     
@@ -380,6 +402,7 @@
                     document.getElementById('setting-multi-content').style.display = 'none';
                     document.getElementById('next-min-input').value = min;
                     document.getElementById('next-max-input').value = max;
+                    document.getElementById('result-next-btn').textContent = "继续此范围训练";
                 } else {
                     showMenuUI();
                 }
@@ -407,13 +430,18 @@
                     alert("请输入 1-20");
                 }
             } else if (currentPageType === 'query') {
+                // 查询时，我们不关心范围，但需要确保它是数字
+                if (!/^\d+$/.test(val)) {
+                    alert("请输入有效的数字 (00-999)");
+                    return;
+                }
                 runQueryLogic(val);
             }
         }
 
         function runMultiLogic(N) {
             const numbers = [];
-            for(let i=0; i<N; i++) numbers.push(generateRandomNumber(lastDrillMin, lastDrillMax));
+            for(let i=0; i<N; i++) numbers.push(generateRandomNumber(DEFAULT_MIN, DEFAULT_MAX)); // 多重记忆使用默认 100-999 范围
             
             const listStr = numbers.join(', ');
             const answerStr = numbers.map(n => `${n}: ${getEncoding(n)}`).join('\n');
@@ -423,13 +451,19 @@
                 if(conf) {
                     showResult("✅ 多重记忆答案", `**数字:**\n${answerStr}`, () => {
                         const nextN = parseInt(document.getElementById('next-count-input').value);
-                        runMultiLogic(nextN);
+                        if(nextN > 0 && nextN <= 20) {
+                             runMultiLogic(nextN);
+                        } else {
+                            runMultiLogic(currentMultiCount); // 如果设置无效，用上次的
+                        }
                     });
                     // 显示多重专用的设置栏
                     document.getElementById('result-setting-bar').style.display = 'block';
                     document.getElementById('setting-single-content').style.display = 'none';
                     document.getElementById('setting-multi-content').style.display = 'flex';
                     document.getElementById('next-count-input').value = N;
+                    document.getElementById('result-next-btn').textContent = "继续下一组数字";
+
                 } else {
                     showMenuUI();
                 }
@@ -437,13 +471,16 @@
         }
 
         function runQueryLogic(numStr) {
+            // 将输入的数字字符串转换为整数，并存储
             const n = parseInt(numStr);
-            // 简单的范围检查
-            currentQueryNumber = n;
+            currentQueryNumber = n; 
+            
+            // 查询时，使用 getEncoding 处理填充 '0'
             const ans = getEncoding(numStr);
             
-            showResult(`🔎 查询: ${numStr}`, `编码: ${ans}`, () => showInputPage('query'));
+            showResult(`🔎 查询: ${numStr.padStart(3, '0')}`, `编码: ${ans}`, () => showInputPage('query'));
             document.getElementById('result-view-next-btn').style.display = 'block';
+            document.getElementById('result-next-btn').textContent = "继续查询";
         }
 
         function showResult(title, text, nextCallback) {
@@ -457,7 +494,7 @@
             const btn = document.getElementById('result-next-btn');
             if (nextCallback) {
                 btn.style.display = 'block';
-                btn.textContent = "继续下一组";
+                btn.textContent = "继续此项操作"; // 默认文本
             } else {
                 btn.style.display = 'none';
             }
@@ -469,12 +506,15 @@
         }
 
         function handleViewNext() {
-             if (currentQueryNumber === null) return;
-             runQueryLogic(String(currentQueryNumber + 1));
+            if (currentQueryNumber === null) return;
+            // 查看下一个，直接查询数字 + 1
+            const nextNum = currentQueryNumber + 1;
+            // 确保查询的数字字符串是三位
+            runQueryLogic(String(nextNum));
         }
 
         // ======================================================
-        // 数据加载
+        // 数据加载与缓存
         // ======================================================
         async function initData() {
             // 1. 尝试本地缓存
@@ -494,14 +534,25 @@
                 const json = await res.json();
                 number_encodings = json;
                 localStorage.setItem(CACHE_KEY, JSON.stringify(json));
-                document.getElementById('data-status').textContent = "数据: 已加载 (最新)";
+                document.getElementById('data-status').textContent = `数据: 已加载 (${Object.keys(json).length} 条)`;
             } catch(e) {
                 console.error(e);
-                if(!Object.keys(number_encodings).length) {
+                const dataKeys = Object.keys(number_encodings).length;
+                if(dataKeys === 0) {
                     document.getElementById('data-status').textContent = "数据: 加载失败";
                 } else {
-                    document.getElementById('data-status').textContent = "数据: 已加载 (缓存)";
+                    document.getElementById('data-status').textContent = `数据: 已加载 (缓存, ${dataKeys} 条)`;
                 }
+            }
+        }
+
+        function clearCacheAndReload() {
+            const confirmed = confirm("确定要清除本地缓存并重新下载数据吗？（用于数据更新）");
+            if (confirmed) {
+                localStorage.removeItem(CACHE_KEY);
+                number_encodings = {};
+                document.getElementById('data-status').textContent = "数据: 缓存已清除，正在重新加载...";
+                initData();
             }
         }
 
