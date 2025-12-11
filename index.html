@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数字桩记忆训练</title>
     <style>
-        /* 简单的 CSS 样式 */
+        /* --- 基础样式 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
@@ -60,7 +60,7 @@
             margin-top: 5px;
         }
         .current-view {
-            display: none; /* 默认隐藏所有功能页，只显示菜单 */
+            display: none;
             padding-top: 20px;
         }
         .current-view.active {
@@ -74,6 +74,14 @@
             width: 100%;
             box-sizing: border-box;
             font-size: 16px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .input-group input {
+            margin-bottom: 0;
         }
         button {
             background-color: #007aff;
@@ -109,12 +117,43 @@
         .btn-red:hover:not(:disabled) {
             background-color: #cc2d26;
         }
-        /* 新增：绿色按钮样式 */
         .btn-green {
             background-color: #34c759;
         }
         .btn-green:hover:not(:disabled) {
             background-color: #248a3d;
+        }
+        
+        /* --- 设置栏样式 --- */
+        .setting-bar {
+            display: none; /* 默认隐藏，JS控制显示 */
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .setting-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .setting-bar input {
+            text-align: center;
+            padding: 5px;
+            margin-bottom: 0;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        /* 针对不同输入框的宽度调整 */
+        .input-short { width: 50px; }
+        .input-medium { width: 70px; }
+        .setting-bar label {
+            font-weight: bold;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -127,7 +166,7 @@
             <ul class="menu-list">
                 <li class="menu-item" onclick="handleMenuSelect(0)">
                     <div class="menu-item-title">🧠 1. 单次随机训练</div>
-                    <div class="menu-item-detail">随机一个数字，确认后显示编码</div>
+                    <div class="menu-item-detail">设定数字范围，逐个随机训练</div>
                 </li>
                 <li class="menu-item" onclick="handleMenuSelect(1)">
                     <div class="menu-item-title">🔢 2. 多重数字记忆</div>
@@ -138,6 +177,20 @@
                     <div class="menu-item-detail">输入数字，立即显示对应编码</div>
                 </li>
             </ul>
+        </div>
+
+        <div id="range-page" class="current-view">
+            <div class="result-title">设定训练范围</div>
+            <div style="font-size: 14px; color: #666; margin-bottom: 10px;">请输入范围 (例如 133 - 255)</div>
+            
+            <div class="input-group">
+                <input type="number" id="range-min" placeholder="最小值" value="100">
+                <span style="align-self: center;">-</span>
+                <input type="number" id="range-max" placeholder="最大值" value="999">
+            </div>
+
+            <button onclick="handleRangeSubmit()">开始训练</button>
+            <button onclick="showMenuUI()">返回主菜单</button>
         </div>
 
         <div id="input-page" class="current-view">
@@ -151,6 +204,23 @@
             <div class="result-title" id="result-page-title"></div>
             <div class="result-box" id="result-page-content"></div>
             
+            <div id="result-setting-bar" class="setting-bar">
+                
+                <div id="setting-multi-content" class="setting-content" style="display:none;">
+                    <label>下轮数量:</label>
+                    <input type="number" id="next-count-input" class="input-short" min="1" max="20" value="5">
+                    <span>个</span>
+                </div>
+
+                <div id="setting-single-content" class="setting-content" style="display:none;">
+                    <label>范围:</label>
+                    <input type="number" id="next-min-input" class="input-medium" placeholder="Min">
+                    <span>-</span>
+                    <input type="number" id="next-max-input" class="input-medium" placeholder="Max">
+                </div>
+
+            </div>
+
             <button id="result-view-next-btn" class="btn-green" style="display: none;" onclick="handleViewNext()">查看下一个 ></button>
             
             <button id="result-next-btn" class="btn-red" onclick="handleResultNext()">继续此项操作</button>
@@ -167,17 +237,22 @@
         const CACHE_KEY = "1000code_cache";
 
         let number_encodings = {};
-        const MIN_NUM = 100;
-        const MAX_NUM = 999;
+        const DEFAULT_MIN = 100;
+        const DEFAULT_MAX = 999;
+        
         let currentPageType = ""; 
         let nextActionCallback = null; 
         
-        // 新增变量：记录当前查询到的数字
+        // --- 核心状态变量 ---
         let currentQueryNumber = null;
+        let currentDrillMin = DEFAULT_MIN; 
+        let currentDrillMax = DEFAULT_MAX; 
+        let currentMultiCount = 5; 
 
         // --- DOM 元素引用 ---
         const menuPage = document.getElementById('menu-page');
         const inputPage = document.getElementById('input-page');
+        const rangePage = document.getElementById('range-page'); 
         const resultPage = document.getElementById('result-page');
         const dataStatus = document.getElementById('data-status');
         const mainTitle = document.getElementById('main-title');
@@ -186,12 +261,21 @@
         const inputField = document.getElementById('input-field');
         const inputSubmitBtn = document.getElementById('input-submit-btn');
 
+        const rangeMinInput = document.getElementById('range-min'); 
+        const rangeMaxInput = document.getElementById('range-max'); 
+
         const resultPageTitle = document.getElementById('result-page-title');
         const resultPageContent = document.getElementById('result-page-content');
         const resultNextBtn = document.getElementById('result-next-btn');
-        
-        // 新增引用
         const resultViewNextBtn = document.getElementById('result-view-next-btn');
+        
+        // 设置栏引用
+        const resultSettingBar = document.getElementById('result-setting-bar');
+        const settingMultiContent = document.getElementById('setting-multi-content');
+        const settingSingleContent = document.getElementById('setting-single-content');
+        const nextCountInput = document.getElementById('next-count-input');
+        const nextMinInput = document.getElementById('next-min-input');
+        const nextMaxInput = document.getElementById('next-max-input');
 
         // --- 核心辅助函数 ---
 
@@ -199,8 +283,10 @@
             console.log("Toast:", message);
         }
 
-        function generateRandomNumber() {
-            const randomNumber = Math.floor(Math.random() * (MAX_NUM - MIN_NUM + 1)) + MIN_NUM;
+        function generateRandomNumber(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
             return String(randomNumber);
         }
 
@@ -214,6 +300,12 @@
             menuPage.classList.remove('active');
             inputPage.classList.remove('active');
             resultPage.classList.remove('active');
+            rangePage.classList.remove('active');
+            
+            // 默认隐藏结果页的所有工具栏
+            resultSettingBar.style.display = 'none';
+            settingMultiContent.style.display = 'none';
+            settingSingleContent.style.display = 'none';
         }
 
         function showMenuUI() {
@@ -224,20 +316,29 @@
             dataStatus.textContent = `数据: ${statusText}`;
         }
 
+        function showRangePageUI() {
+            hideAllViews();
+            rangePage.classList.add('active');
+            rangeMinInput.value = currentDrillMin;
+            rangeMaxInput.value = currentDrillMax;
+        }
+
         function showInputPage(type) {
             currentPageType = type;
             hideAllViews();
             inputPage.classList.add('active');
 
             const isMulti = type === "multi";
+            const rangeInfo = `(当前范围: ${currentDrillMin}-${currentDrillMax})`;
             const pageTitle = isMulti ? "输入多重记忆数量 N" : "输入查询数字";
-            const placeholder = isMulti ? "请输入数量 N (1-20)" : `请输入 ${MIN_NUM} 到 ${MAX_NUM} 的数字`;
+            const placeholder = isMulti ? "请输入数量 N (1-20)" : `请输入 ${DEFAULT_MIN} 到 ${DEFAULT_MAX} 的数字`;
 
-            inputPageTitle.textContent = pageTitle;
+            inputPageTitle.innerHTML = `${pageTitle} <div style='font-size:12px;color:#888;font-weight:normal;margin-top:5px;'>${rangeInfo}</div>`;
+            
             inputField.placeholder = placeholder;
             inputField.value = "";
-            inputField.setAttribute('min', isMulti ? 1 : MIN_NUM);
-            inputField.setAttribute('max', isMulti ? 20 : MAX_NUM);
+            inputField.setAttribute('min', isMulti ? 1 : DEFAULT_MIN);
+            inputField.setAttribute('max', isMulti ? 20 : DEFAULT_MAX);
             inputField.focus();
             validateInput();
         }
@@ -255,11 +356,10 @@
             resultPageTitle.textContent = title;
             resultPageContent.textContent = message;
 
-            // 默认隐藏“查看下一个”，只有在查询逻辑里才手动打开
             resultViewNextBtn.style.display = 'none';
 
             if (nextAction) {
-                resultNextBtn.textContent = "继续此项操作";
+                resultNextBtn.textContent = "继续下一组"; 
                 resultNextBtn.style.display = 'block';
                 resultNextBtn.classList.add('btn-red');
             } else {
@@ -269,72 +369,130 @@
 
         // --- 核心功能实现 ---
 
-        function drillRandomNumber() {
+        function handleRangeSubmit() {
+            const minVal = parseInt(rangeMinInput.value);
+            const maxVal = parseInt(rangeMaxInput.value);
+
+            if (isNaN(minVal) || isNaN(maxVal)) {
+                alert("请输入有效的数字");
+                return;
+            }
+            if (minVal > maxVal) {
+                alert("最小值不能大于最大值！");
+                return;
+            }
+            currentDrillMin = minVal;
+            currentDrillMax = maxVal;
+            drillRandomNumber(currentDrillMin, currentDrillMax);
+        }
+
+        function drillRandomNumber(min, max) {
             if (!Object.keys(number_encodings).length) {
                 alert("⚠️ 错误: 数据未加载。");
                 return;
             }
-            const targetNumber = generateRandomNumber();
+            const targetNumber = generateRandomNumber(min, max);
             const correctAnswer = getEncoding(targetNumber);
 
-            const userConfirmed = confirm(`🧠 随机数字训练\n\n请默想数字 ${targetNumber} 对应的编码。准备好了吗？\n\n点击“确定”查看编码，点击“取消”返回菜单。`);
+            setTimeout(() => {
+                const userConfirmed = confirm(`🧠 随机数字: ${targetNumber}\n\n范围: ${min} - ${max}\n\n请默想对应的图像编码。\n准备好查看答案了吗？`);
 
-            if (userConfirmed) {
-                showResultUI(`✅ ${targetNumber} 的编码`,
-                    `数字: ${targetNumber}\n\n编码: ${correctAnswer}`,
-                    drillRandomNumber);
-            } else {
-                showMenuUI();
-            }
+                if (userConfirmed) {
+                    showResultUI(`✅ ${targetNumber} 的编码`,
+                        `数字: ${targetNumber}\n\n编码: ${correctAnswer}`,
+                        
+                        // --- 关键回调：单次训练的继续逻辑 ---
+                        () => {
+                            // 读取结果页上的输入框
+                            const newMin = parseInt(nextMinInput.value);
+                            const newMax = parseInt(nextMaxInput.value);
+                            
+                            if (isNaN(newMin) || isNaN(newMax) || newMin > newMax) {
+                                alert("范围无效，请重新输入");
+                                return;
+                            }
+                            // 更新全局状态，并开始下一轮
+                            currentDrillMin = newMin;
+                            currentDrillMax = newMax;
+                            drillRandomNumber(newMin, newMax);
+                        }
+                    );
+
+                    // --- 显示范围设置栏 ---
+                    resultSettingBar.style.display = 'block';
+                    settingSingleContent.style.display = 'flex'; // 显示单次设置内容
+                    settingMultiContent.style.display = 'none';  // 隐藏多重设置内容
+                    
+                    // 填入当前值
+                    nextMinInput.value = min;
+                    nextMaxInput.value = max;
+
+                } else {
+                    showMenuUI();
+                }
+            }, 100);
         }
 
         function drillMultipleNumbers(N) {
             const N_val = parseInt(N);
             const numbers = new Set();
-            while (numbers.size < N_val) {
-                numbers.add(generateRandomNumber());
+            
+            let attempts = 0;
+            while (numbers.size < N_val && attempts < 1000) {
+                numbers.add(generateRandomNumber(currentDrillMin, currentDrillMax));
+                attempts++;
             }
+            
             const numberList = Array.from(numbers);
             const formattedList = numberList.map(numStr => `${numStr}: ${getEncoding(numStr)}`).join('\n');
             const plainNumberList = numberList.join(', ');
+            const rangeText = `(范围: ${currentDrillMin}-${currentDrillMax})`;
 
-            const userConfirmed = confirm(`🧠 ${N_val} 个数字随机训练\n\n请尝试联想并记忆这组数字：\n**${plainNumberList}**\n\n准备好了吗？\n\n点击“确定”查看答案，点击“取消”返回菜单。`);
+            setTimeout(() => {
+                const userConfirmed = confirm(`🧠 ${numbers.size} 个数字随机训练 ${rangeText}\n\n请尝试联想并记忆这组数字：\n**${plainNumberList}**\n\n准备好了吗？\n\n点击“确定”查看答案，点击“取消”返回菜单。`);
 
-            if (userConfirmed) {
-                showResultUI("✅ 编码答案",
-                    `**数字列表:**\n${formattedList}`,
-                    () => showInputPage("multi")
-                );
-            } else {
-                showMenuUI();
-            }
+                if (userConfirmed) {
+                    showResultUI("✅ 编码答案",
+                        `**数字列表:**\n${formattedList}`,
+                        
+                        // --- 关键回调：多重训练的继续逻辑 ---
+                        () => {
+                            const nextN = parseInt(nextCountInput.value);
+                            if (nextN > 0 && nextN <= 20) {
+                                drillMultipleNumbers(nextN);
+                            } else {
+                                alert("请输入 1-20 之间的有效数量");
+                            }
+                        }
+                    );
+                    
+                    // --- 显示数量设置栏 ---
+                    resultSettingBar.style.display = 'block';
+                    settingMultiContent.style.display = 'flex'; // 显示多重设置内容
+                    settingSingleContent.style.display = 'none'; // 隐藏单次设置内容
+                    
+                    nextCountInput.value = N_val; 
+
+                } else {
+                    showMenuUI();
+                }
+            }, 100);
         }
 
-        // --- 新增：处理点击“查看下一个” ---
         function handleViewNext() {
             if (currentQueryNumber === null) return;
-            
-            // 计算下一个数字
             let nextNum = currentQueryNumber + 1;
-            
-            // 边界检查
-            if (nextNum > MAX_NUM) {
+            if (nextNum > DEFAULT_MAX) {
                 alert("已经到达最大数字！");
                 return;
             }
-            
-            // 更新状态
             currentQueryNumber = nextNum;
             const numStr = String(nextNum);
             const encoding = getEncoding(numStr);
-            
-            // 刷新页面显示
             showResultUI(`🔎 ${numStr} 对应的编码`,
                 `数字: ${numStr}\n\n编码: ${encoding}`,
                 () => showInputPage("query")
             );
-            
-            // 重要：保持“查看下一个”按钮可见
             resultViewNextBtn.style.display = 'block';
         }
 
@@ -346,7 +504,7 @@
                 return;
             }
             switch (index) {
-                case 0: drillRandomNumber(); break;
+                case 0: showRangePageUI(); break; 
                 case 1: showInputPage("multi"); break;
                 case 2: showInputPage("query"); break;
             }
@@ -359,7 +517,8 @@
             if (currentPageType === "multi") {
                 const N = parseInt(input);
                 if (N > 0 && N <= 20) {
-                    drillMultipleNumbers(N);
+                    currentMultiCount = N;
+                    drillMultipleNumbers(currentMultiCount);
                 } else {
                     alert("错误: 请输入 1 到 20 之间的有效数字。");
                     showInputPage("multi");
@@ -367,21 +526,16 @@
             } else if (currentPageType === "query") {
                 const numStr = input;
                 const num = parseInt(numStr);
-                if (num >= MIN_NUM && num <= MAX_NUM) {
-                    // 保存当前数字状态
+                if (num >= DEFAULT_MIN && num <= DEFAULT_MAX) {
                     currentQueryNumber = num;
-                    
                     const encoding = getEncoding(numStr);
                     showResultUI(`🔎 ${numStr} 对应的编码`,
                         `数字: ${numStr}\n\n编码: ${encoding}`,
                         () => showInputPage("query")
                     );
-                    
-                    // 仅在查询模式下，显示“查看下一个”按钮
                     resultViewNextBtn.style.display = 'block';
-                    
                 } else {
-                    alert(`⚠️ 数字错误: 请输入有效的 ${MIN_NUM} 到 ${MAX_NUM} 的数字。`);
+                    alert(`⚠️ 数字错误: 请输入有效的 ${DEFAULT_MIN} 到 ${DEFAULT_MAX} 的数字。`);
                     showInputPage("query");
                 }
             }
@@ -395,8 +549,7 @@
             }
         }
 
-        // --- 核心加载与更新逻辑 ---
-
+        // --- 加载逻辑 ---
         function loadFromCache() {
             const jsonStr = localStorage.getItem(CACHE_KEY);
             if (jsonStr) {
