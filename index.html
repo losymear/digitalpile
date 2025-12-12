@@ -7,7 +7,7 @@
     <style>
         /* --- 基础样式 --- */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8f8f8; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); position: relative; } /* 添加 relative */
         h1 { color: #007aff; font-size: 24px; margin-bottom: 20px; text-align: center; }
         .data-status { text-align: center; font-size: 14px; color: #888; margin-bottom: 30px; }
 
@@ -82,6 +82,78 @@
         .story-detail-box { background-color: #f0fff0; border: 1px solid #b7eb8f; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         .story-detail-box strong { font-size: 24px; color: #389e0d; display: block; margin-bottom: 10px; }
         .story-detail-box p { white-space: pre-wrap; line-height: 1.6; }
+
+        /* --- 权重弹窗样式 --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .weight-list {
+            list-style: none;
+            padding: 0;
+            font-size: 14px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+        .weight-list li {
+            padding: 5px;
+            border-bottom: 1px dotted #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .weight-value {
+            font-weight: bold;
+            color: #ff3b30;
+        }
+        .quiz-settings-btn { /* 新增按钮样式 */
+            position: absolute;
+            top: 10px; /* 调整为 10px */
+            right: 20px;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 18px;
+            line-height: 1;
+            z-index: 10;
+        }
+        /* 调整 Quiz Working Page：新增 position: relative */
+        #quiz-working-page {
+            padding-top: 50px;
+            position: relative; /* 确保绝对定位的按钮在其内部正确工作 */
+        }
     </style>
 </head>
 <body>
@@ -99,7 +171,7 @@
             </li>
             <li class="menu-item" onclick="showQuizRangeUI()">
                 <div class="menu-item-title">📝 2. 默写测试 (输编码)</div>
-                <div class="menu-item-detail">看数字 -> 输入文字 -> 系统自动判分</div>
+                <div class="menu-item-detail">看数字 -> 输入文字 -> 系统自动判分 (加权)</div>
             </li>
             <li class="menu-item" onclick="showInputPage('multi')">
                 <div class="menu-item-title">🔢 3. 多重数字记忆</div>
@@ -200,6 +272,7 @@
     </div>
 
     <div id="quiz-working-page" class="current-view">
+        <button class="quiz-settings-btn" onclick="showWeightModal()">⚖️</button>
         <div class="quiz-card">
             <div class="quiz-info">请默写下方数字对应的桩子</div>
             <span class="quiz-number" id="quiz-question-num">000</span>
@@ -269,6 +342,17 @@
 
 </div>
 
+<div id="weight-modal" class="modal" onclick="if(event.target.id === 'weight-modal') hideWeightModal()">
+    <div class="modal-content">
+        <span class="close-btn" onclick="hideWeightModal()">&times;</span>
+        <div class="result-title">当前默写范围权重</div>
+        <div style="font-size: 12px; color: #666; margin-bottom: 10px;">(答对降低，答错增加)</div>
+        <ul id="weight-list-content" class="weight-list">
+        </ul>
+    </div>
+</div>
+
+
 <script>
     // ======================================================
     // 数据与状态
@@ -279,11 +363,19 @@
     const CACHE_KEY = "1000code_cache";
     const STORY_CACHE_KEY = "1000story_cache"; // 新增故事缓存键
     const CODE100_CACHE_KEY = "100code_cache"; // 新增 100 桩缓存键
+    const WEIGHTS_CACHE_KEY = "quiz_weights_cache"; // 新增权重缓存键
+
     const DEFAULT_MIN = 100;
     const DEFAULT_MAX = 999;
+    const INITIAL_WEIGHT = 10;
+    const MIN_WEIGHT = 1; // 权重不能低于 1
+    const CORRECT_DECREASE = 2; // 答对权重减少量
+    const WRONG_INCREASE = 5; // 答错权重增加量
+
     let number_encodings = {};
     let number_stories = {}; // 存储故事数据
     let number_pegs100 = {}; // 存储 100 桩数据
+    let quizWeights = {}; // 存储所有数字的权重，键为数字字符串 ("000" - "999")
 
     // 页面元素引用
     const views = {
@@ -295,8 +387,8 @@
         result: document.getElementById('result-page'),
         storyMenu: document.getElementById('story-menu-page'),
         storyList: document.getElementById('story-list-page'),
-        pegs100Menu: document.getElementById('pegs100-menu-page'), // 新增
-        pegs100List: document.getElementById('pegs100-list-page'), // 新增
+        pegs100Menu: document.getElementById('pegs100-menu-page'),
+        pegs100List: document.getElementById('pegs100-list-page'),
     };
 
     // 全局状态 (用于记录上一次的范围，方便连贯操作)
@@ -304,6 +396,7 @@
     let lastDrillMax = DEFAULT_MAX;
     let lastQuizMin = DEFAULT_MIN;
     let lastQuizMax = DEFAULT_MAX;
+    let quizRange = []; // 当前默写测试的数字列表，用于加权随机
 
     let currentQuizTargetNum = null; // 当前默写测试的数字
     let currentPageType = "";
@@ -325,6 +418,45 @@
         document.getElementById('result-setting-bar').style.display = 'none';
     }
 
+    /**
+     * 加权随机抽取数字
+     * @returns {string} 抽中的数字字符串
+     */
+    function generateWeightedRandomNumber() {
+        if (quizRange.length === 0) {
+            // 如果没有设置范围，退回到原来的随机逻辑 (使用 lastQuizMin/Max)
+            return generateRandomNumber(lastQuizMin, lastQuizMax);
+        }
+
+        let totalWeight = 0;
+        const numbersWithWeights = quizRange.map(num => {
+            const numStr = String(num).padStart(3, '0');
+            // 确保数字在 weights 中有初始值
+            if (!quizWeights[numStr]) {
+                quizWeights[numStr] = INITIAL_WEIGHT;
+                saveQuizWeights(); // 新增的数字需要保存权重
+            }
+            const weight = quizWeights[numStr] || INITIAL_WEIGHT;
+            totalWeight += weight;
+            return { numStr, weight };
+        });
+
+        // 抽取逻辑
+        let random = Math.random() * totalWeight;
+        for (let i = 0; i < numbersWithWeights.length; i++) {
+            random -= numbersWithWeights[i].weight;
+            if (random < 0) {
+                return numbersWithWeights[i].numStr;
+            }
+        }
+
+        // 理论上不会执行到这里，但作为回退机制
+        return numbersWithWeights[numbersWithWeights.length - 1].numStr;
+    }
+
+    /**
+     * 传统的随机数字生成，用于非加权场景 (如功能1或多重记忆)
+     */
     function generateRandomNumber(min, max) {
         min = Math.ceil(min);
         max = Math.floor(max);
@@ -349,27 +481,20 @@
     }
 
     function getStory(numStr) {
-        // 故事数据是按段落键值对存储的，如 "100-109"
         const num = parseInt(numStr);
         const start = Math.floor(num / 10) * 10;
         const key = `${start}-${start + 9}`;
         const storySegment = number_stories[key] || `[故事段落 ${key} 缺失]`;
-
-        // 故事内容是形如 "A(100), B(101)" 的字符串，需要提取
-        // 我们查找 (数字) 模式
         const regex = new RegExp(`([^\\(]+)\\(${num}\\)`);
         const match = storySegment.match(regex);
         if (match) {
-            // 找到精确匹配 (数字) 后的前一个词或短语
             return `**${match[1].trim()}**\n\n完整段落:\n${storySegment}`;
         }
-        // 如果没有精确匹配，返回整个段落
         return `**未找到 ${num} 对应的独立桩子，请参考以下段落：**\n\n${storySegment}`;
     }
 
     function checkDataLoaded() {
         if (!Object.keys(number_encodings).length) {
-            // alert("⚠️ 编码数据未加载，请检查网络"); // Don't block flow, just check
             return false;
         }
         return true;
@@ -377,7 +502,6 @@
 
     function checkStoryLoaded() {
         if (!Object.keys(number_stories).length) {
-            // alert("⚠️ 故事数据未加载，请检查网络");
             return false;
         }
         return true;
@@ -385,20 +509,56 @@
 
     function checkPegs100Loaded() {
         if (!Object.keys(number_pegs100).length) {
-            // alert("⚠️ 100桩数据未加载，请检查网络");
             return false;
         }
         return true;
     }
 
-    /**
-     * 获取选中的范围复选框的值
-     * @param {string} name - 复选框组的名称 (e.g., 'multi-range')
-     * @returns {string[]} 选中的值数组 (e.g., ["100", "1000"])
-     */
     function getSelectedRanges(name) {
         const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
         return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    // ======================================================
+    // 权重管理逻辑
+    // ======================================================
+
+    function loadQuizWeights() {
+        const cachedWeights = localStorage.getItem(WEIGHTS_CACHE_KEY);
+        if (cachedWeights) {
+            try {
+                quizWeights = JSON.parse(cachedWeights);
+                console.log("Loaded quiz weights from cache.");
+            } catch(e) {
+                console.error("Failed to parse quiz weights cache:", e);
+                localStorage.removeItem(WEIGHTS_CACHE_KEY);
+                quizWeights = {};
+            }
+        }
+    }
+
+    function saveQuizWeights() {
+        localStorage.setItem(WEIGHTS_CACHE_KEY, JSON.stringify(quizWeights));
+    }
+
+    /**
+     * 根据答题结果更新数字的权重
+     * @param {string} numStr - 数字字符串
+     * @param {boolean} isCorrect - 是否回答正确
+     */
+    function updateWeight(numStr, isCorrect) {
+        const currentWeight = quizWeights[numStr] || INITIAL_WEIGHT;
+
+        if (isCorrect) {
+            // 答对：降低权重，但不能低于最小权重
+            const newWeight = Math.max(MIN_WEIGHT, currentWeight - CORRECT_DECREASE);
+            quizWeights[numStr] = newWeight;
+        } else {
+            // 答错：增加权重
+            const newWeight = currentWeight + WRONG_INCREASE;
+            quizWeights[numStr] = newWeight;
+        }
+        saveQuizWeights();
     }
 
     // ======================================================
@@ -416,7 +576,6 @@
         const pegs100Keys = Object.keys(number_pegs100).length;
         document.getElementById('pegs100-status').textContent = `100桩: ${pegs100Keys > 0 ? `已加载 (${pegs100Keys} 条)` : '缺失'}`;
 
-        // 如果100桩缺失，禁用对应菜单项
         const pegs100MenuItem = document.querySelector('.pegs100-required');
         if (pegs100Keys === 0) {
             pegs100MenuItem.classList.add('disabled');
@@ -425,14 +584,12 @@
         }
     }
 
-    // 5. 故事菜单页
     function showStoryMenuUI() {
         if(!checkStoryLoaded()) return;
         hideAllViews();
         views.storyMenu.classList.add('active');
     }
 
-    // 5. 故事列表页
     function showStoryListUI() {
         if(!checkStoryLoaded()) return;
         hideAllViews();
@@ -443,7 +600,6 @@
     function generateStoryList() {
         const listEl = document.getElementById('story-list-content');
         listEl.innerHTML = '';
-        // 假设故事键是 "100-109", "110-119", ..., "990-999"
         const keys = Object.keys(number_stories).sort();
         keys.forEach(key => {
             const li = document.createElement('li');
@@ -454,14 +610,12 @@
         });
     }
 
-    // 6. 100 桩菜单页
     function showPegs100MenuUI() {
         if(!checkPegs100Loaded()) return;
         hideAllViews();
         views.pegs100Menu.classList.add('active');
     }
 
-    // 6. 100 桩列表页
     function showPegs100ListUI() {
         if(!checkPegs100Loaded()) return;
         hideAllViews();
@@ -481,10 +635,9 @@
     }
 
     // ======================================================
-    // 业务逻辑：功能 1 (单次随机训练) - 缺失的代码已添加
+    // 业务逻辑：功能 1 (单次随机训练)
     // ======================================================
 
-    // 1. 单次训练 - 范围页
     function showDrillRangeUI() {
         if(!checkDataLoaded()) return;
         hideAllViews();
@@ -506,6 +659,7 @@
     }
 
     function runDrillLogic(min, max) {
+        // 注意：功能 1 不使用加权随机，使用传统的 generateRandomNumber
         const target = generateRandomNumber(min, max);
         const answer = getEncoding(target);
 
@@ -513,27 +667,22 @@
             const conf = confirm(`🧠 随机数字: ${target}\n(范围 ${min.toString().padStart(3, '0')}-${max.toString().padStart(3, '0')})\n\n请联想...\n点击确定查看答案。`);
             if(conf) {
                 showResult(`✅ ${target} 的编码`, `数字: ${target}\n编码: ${answer}`, () => {
-                    // 续杯逻辑：重新读取结果页面的设置框
                     const newMin = parseInt(document.getElementById('next-min-input').value);
                     const newMax = parseInt(document.getElementById('next-max-input').value);
-                    // 简单检查有效性
                     if (!isNaN(newMin) && !isNaN(newMax) && newMin <= newMax) {
                         lastDrillMin = newMin;
                         lastDrillMax = newMax;
                         runDrillLogic(newMin, newMax);
                     } else {
-                        // 如果设置无效，就用上次的范围继续
                         runDrillLogic(lastDrillMin, lastDrillMax);
                     }
                 });
-                // 显示单次训练专用的设置栏
                 document.getElementById('result-setting-bar').style.display = 'block';
                 document.getElementById('setting-single-content').style.display = 'flex';
                 document.getElementById('setting-multi-content').style.display = 'none';
                 document.getElementById('next-min-input').value = min;
                 document.getElementById('next-max-input').value = max;
                 document.getElementById('result-next-btn').textContent = "继续此范围训练";
-                // 单次训练不需要查看下一个按钮，保持隐藏
                 document.getElementById('result-view-next-btn').style.display = 'none';
             } else {
                 showMenuUI();
@@ -542,10 +691,9 @@
     }
 
     // ======================================================
-    // 业务逻辑：功能 2 (默写测试) - 缺失的代码已添加
+    // 业务逻辑：功能 2 (默写测试 - 加权)
     // ======================================================
 
-    // 2. 默写测试 - 范围页 (独立)
     function showQuizRangeUI() {
         if(!checkDataLoaded()) return;
         hideAllViews();
@@ -561,17 +709,39 @@
             alert("请输入有效的范围");
             return;
         }
-        // 保存状态
+        if (min < 0 || max > 999) {
+            alert("默写测试仅支持 000-999 范围内的数字桩。");
+            return;
+        }
+
         lastQuizMin = min;
         lastQuizMax = max;
-        // 进入测试页
+
+        // 1. 根据当前范围生成数字列表 (用于加权随机)
+        quizRange = [];
+        for (let i = min; i <= max; i++) {
+            // 只有在编码数据中存在的数字才加入范围
+            if (getEncoding(i) !== '[缺失]') {
+                quizRange.push(i);
+            }
+        }
+
+        if (quizRange.length === 0) {
+            alert("当前范围内没有可用的数字编码数据，请检查范围或数据加载情况。");
+            showQuizRangeUI();
+            return;
+        }
+
+        // 2. 进入测试页
         hideAllViews();
         views.quizWork.classList.add('active');
         nextQuizRound();
     }
 
     function nextQuizRound() {
-        currentQuizTargetNum = generateRandomNumber(lastQuizMin, lastQuizMax);
+        // 使用加权随机抽取下一个数字
+        currentQuizTargetNum = generateWeightedRandomNumber();
+
         // UI 重置
         document.getElementById('quiz-question-num').textContent = currentQuizTargetNum;
         document.getElementById('quiz-range-label').textContent = `${lastQuizMin.toString().padStart(3, '0')} - ${lastQuizMax.toString().padStart(3, '0')}`;
@@ -590,28 +760,56 @@
         const isCorrect = answer === correct;
         const resultBox = document.getElementById('quiz-result-box');
 
+        // 核心修改：更新权重
+        updateWeight(currentQuizTargetNum, isCorrect);
+
         resultBox.classList.remove('quiz-correct', 'quiz-wrong');
         resultBox.style.display = 'block';
 
+        const currentWeight = quizWeights[currentQuizTargetNum] || INITIAL_WEIGHT;
+
         if (isCorrect) {
             resultBox.classList.add('quiz-correct');
-            resultBox.innerHTML = `✅ **回答正确!**\n\n数字: ${currentQuizTargetNum}\n编码: ${correct}`;
+            resultBox.innerHTML = `✅ **回答正确!** (权重降至: ${currentWeight})\n\n数字: ${currentQuizTargetNum}\n编码: ${correct}`;
         } else {
             resultBox.classList.add('quiz-wrong');
-            resultBox.innerHTML = `❌ **回答错误!**\n\n您输入: ${answer}\n正确答案: ${correct}`;
+            resultBox.innerHTML = `❌ **回答错误!** (权重升至: ${currentWeight})\n\n您输入: ${answer}\n正确答案: ${correct}`;
         }
 
         document.getElementById('quiz-submit-btn').style.display = 'none';
         document.getElementById('quiz-next-btn').style.display = 'block';
     }
 
+    // 权重弹窗逻辑
+    function showWeightModal() {
+        const modal = document.getElementById('weight-modal');
+        const listContent = document.getElementById('weight-list-content');
+        listContent.innerHTML = '';
+
+        // 确保列表已根据数字排序
+        const sortedQuizRange = quizRange.slice().sort((a, b) => a - b);
+
+        sortedQuizRange.forEach(num => {
+            const numStr = String(num).padStart(3, '0');
+            const weight = quizWeights[numStr] || INITIAL_WEIGHT;
+
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${numStr}: ${getEncoding(numStr)}</span> <span class="weight-value">${weight}</span>`;
+            listContent.appendChild(li);
+        });
+
+        modal.style.display = 'block';
+    }
+
+    function hideWeightModal() {
+        document.getElementById('weight-modal').style.display = 'none';
+    }
+
     // ======================================================
-    // 业务逻辑：多重记忆 (Multi) - 保留了之前修改的功能3代码
+    // 业务逻辑：多重记忆 (Multi)
     // ======================================================
 
-    // 3/4/5/6. 通用输入页 (多重/查询/故事查询/100桩查询)
     function showInputPage(type) {
-        // 检查核心数据加载状态
         if(type === 'query' && !checkDataLoaded()) {
             alert("1000桩数据未加载，请检查网络。");
             showMenuUI();
@@ -638,34 +836,32 @@
         field.value = "";
         field.focus();
 
-        // 处理多重记忆选项的显示和状态
         if (type === 'multi') {
             title.textContent = "多重记忆 - 输入数量";
             field.placeholder = "请输入 1-20";
-            multiOptions.style.display = 'block'; // 显示选项
+
+            // 确保 multiOptions 显示
+            multiOptions.style.display = 'block';
 
             const pegs100Loaded = checkPegs100Loaded();
             const pegs1000Loaded = checkDataLoaded();
 
-            // 禁用和默认选中状态
             const cb100 = document.getElementById('multi-range-100');
             const cb1000 = document.getElementById('multi-range-1000');
             cb100.disabled = !pegs100Loaded;
             cb1000.disabled = !pegs1000Loaded;
 
-            // 默认选中所有可用的
+            // 设置初始选中状态：有数据则选中
             cb100.checked = pegs100Loaded;
             cb1000.checked = pegs1000Loaded;
 
-            // 如果两个都没加载，则退出
             if (!pegs100Loaded && !pegs1000Loaded) {
-                alert("多重记忆所需数据（100桩/1000桩）均未加载，请检查网络或清除缓存。");
+                alert("多重记忆所需数据（100桩/1000桩）均未加载，请检查范围或数据加载情况。");
                 showMenuUI();
                 return;
             }
         } else {
-            // 其他类型
-            multiOptions.style.display = 'none'; // 隐藏选项
+            multiOptions.style.display = 'none';
             if (type === 'query') {
                 title.textContent = "查询编码 - 输入数字";
                 field.placeholder = "请输入数字 (000-999)";
@@ -677,7 +873,7 @@
                 field.placeholder = "请输入数字 (00-99)";
             }
         }
-        validateInput(); // 确保按钮状态正确
+        validateInput();
     }
 
     function runMultiLogic(N) {
@@ -685,11 +881,10 @@
 
         if (selectedRanges.length === 0) {
             alert("请至少选择一个数字桩范围进行训练。");
-            showInputPage('multi'); // 返回输入页
+            showInputPage('multi');
             return;
         }
 
-        // 1. 确定展示标题中的范围
         let titleRange = "";
         if (selectedRanges.length === 2) {
             titleRange = "00-999";
@@ -699,10 +894,8 @@
             titleRange = "100-999";
         }
 
-        // 2. 生成 N 个数字，随机从选定的范围中抽取
         const numbers = [];
         for (let i = 0; i < N; i++) {
-            // 随机选择一个范围
             const rangeChoice = selectedRanges[Math.floor(Math.random() * selectedRanges.length)];
             let num;
             if (rangeChoice === '100') {
@@ -710,10 +903,9 @@
             } else { // '1000'
                 num = generateRandomNumber(DEFAULT_MIN, DEFAULT_MAX);
             }
-            numbers.push({num: num, range: rangeChoice}); // 存储数字和它的范围类型
+            numbers.push({num: num, range: rangeChoice});
         }
 
-        // 3. 生成展示字符串
         const listStr = numbers.map(item => item.num.padStart(item.range === '100' ? 2 : 3, '0')).join(', ');
 
         const answerStr = numbers.map(item => {
@@ -726,11 +918,8 @@
         setTimeout(() => {
             const conf = confirm(`记忆 ${N} 个数字 (范围: ${titleRange}):\n${listStr}\n\n准备好查看答案吗？`);
             if(conf) {
-                showResult("✅ 多重记忆答案", `**数字 (范围: ${titleRange}):**\n${answerStr}`, () => {
-                    // 回调逻辑已移至 handleResultNext，这里留空或不传
-                });
+                showResult("✅ 多重记忆答案", `**数字 (范围: ${titleRange}):**\n${answerStr}`, () => {});
 
-                // 结果页设置栏配置
                 document.getElementById('result-setting-bar').style.display = 'block';
                 document.getElementById('setting-single-content').style.display = 'none';
                 document.getElementById('setting-multi-content').style.display = 'flex';
@@ -738,12 +927,11 @@
                 document.getElementById('result-next-btn').textContent = "继续下一组数字";
                 document.getElementById('result-view-next-btn').style.display = 'none';
 
-                // 设置下一轮的范围复选框
+                // 设置结果页的下一轮选项
                 const cbNext100 = document.getElementById('next-multi-range-100');
                 const cbNext1000 = document.getElementById('next-multi-range-1000');
                 cbNext100.checked = selectedRanges.includes('100');
                 cbNext1000.checked = selectedRanges.includes('1000');
-                // 禁用下一轮选项如果数据未加载
                 cbNext100.disabled = !checkPegs100Loaded();
                 cbNext1000.disabled = !checkDataLoaded();
 
@@ -754,7 +942,7 @@
     }
 
     // ======================================================
-    // 业务逻辑：查询编码 (Query)
+    // 业务逻辑：查询编码 (Query) & 通用
     // ======================================================
 
     function runQueryLogic(numStr) {
@@ -774,30 +962,6 @@
         currentPageType = 'query';
     }
 
-    // ======================================================
-    // 业务逻辑：故事相关 (Story)
-    // ======================================================
-    function showRandomStory() {
-        if(!checkStoryLoaded()) return;
-
-        // 随机一个 100-999 的数字桩
-        const randomNum = generateRandomNumber(100, 999);
-        const randomNumStr = String(randomNum).padStart(3, '0');
-
-        // 显示故事
-        const storyContent = getStory(randomNumStr);
-        showResult(`🎲 随机故事: ${randomNumStr}`, storyContent, showRandomStory);
-        document.getElementById('result-next-btn').textContent = "再来一个随机故事";
-    }
-
-    function viewStorySegment(key) {
-        const storyText = number_stories[key] || `[故事段落 ${key} 缺失]`;
-        // 显示结果时，需要将 (数字) 模式替换为 **(数字)** 突出显示
-        const formattedText = storyText.replace(/\((\d{3})\)/g, '($1)').replace(/(\(\d{3}\))/g, ' **$1** ');
-        showResult(`📘 ${key} 故事段落`, formattedText, () => showStoryListUI());
-        document.getElementById('result-next-btn').textContent = "返回故事列表";
-    }
-
     function handleStoryQuery(numStr) {
         const num = parseInt(numStr);
         const paddedNumStr = String(num).padStart(3, '0');
@@ -810,25 +974,9 @@
         const storyContent = getStory(paddedNumStr);
         showResult(`🔎 查询故事: ${paddedNumStr}`, storyContent, () => showInputPage('storyQuery'));
         document.getElementById('result-next-btn').textContent = "继续查询";
-        document.getElementById('result-view-next-btn').style.display = 'block'; // 允许查看下一个
-        currentQueryNumber = num; // 设置当前查询数字，方便查看下一个
-        currentPageType = 'storyQuery'; // 确保 handleViewNext 知道当前模式
-    }
-
-    // ======================================================
-    // 业务逻辑：100 桩相关 (Pegs100)
-    // ======================================================
-    function showRandomPeg100() {
-        if(!checkPegs100Loaded()) return;
-
-        // 随机一个 00-99 的数字桩
-        const randomNum = generateRandomNumber(0, 99);
-        const randomNumStr = String(randomNum).padStart(2, '0');
-
-        // 显示桩子
-        const pegContent = getPeg100(randomNumStr);
-        showResult(`🎲 随机 100 桩: ${randomNumStr}`, `桩子: ${pegContent}`, showRandomPeg100);
-        document.getElementById('result-next-btn').textContent = "再来一个随机桩子";
+        document.getElementById('result-view-next-btn').style.display = 'block';
+        currentQueryNumber = num;
+        currentPageType = 'storyQuery';
     }
 
     function handlePegs100Query(numStr) {
@@ -848,9 +996,35 @@
         currentPageType = 'pegs100Query';
     }
 
-    // ======================================================
-    // 业务逻辑：通用处理 (Input/Result/Data)
-    // ======================================================
+    function showRandomStory() {
+        if(!checkStoryLoaded()) return;
+
+        const randomNum = generateRandomNumber(100, 999);
+        const randomNumStr = String(randomNum).padStart(3, '0');
+
+        const storyContent = getStory(randomNumStr);
+        showResult(`🎲 随机故事: ${randomNumStr}`, `**${randomNumStr}:**\n${storyContent}`, showRandomStory);
+        document.getElementById('result-next-btn').textContent = "再来一个随机故事";
+    }
+
+    function viewStorySegment(key) {
+        const storyText = number_stories[key] || `[故事段落 ${key} 缺失]`;
+        const formattedText = storyText.replace(/\((\d{3})\)/g, '($1)').replace(/(\(\d{3}\))/g, ' **$1** ');
+        showResult(`📘 ${key} 故事段落`, formattedText, () => showStoryListUI());
+        document.getElementById('result-next-btn').textContent = "返回故事列表";
+    }
+
+    function showRandomPeg100() {
+        if(!checkPegs100Loaded()) return;
+
+        const randomNum = generateRandomNumber(0, 99);
+        const randomNumStr = String(randomNum).padStart(2, '0');
+
+        const pegContent = getPeg100(randomNumStr);
+        showResult(`🎲 随机 100 桩: ${randomNumStr}`, `桩子: ${pegContent}`, showRandomPeg100);
+        document.getElementById('result-next-btn').textContent = "再来一个随机桩子";
+    }
+
 
     function validateInput() {
         const val = document.getElementById('input-field').value;
@@ -870,21 +1044,18 @@
                 alert("请输入 1-20");
             }
         } else if (currentPageType === 'query') {
-            // 查询编码
             if (!/^\d+$/.test(val)) {
                 alert("请输入有效的数字 (000-999)");
                 return;
             }
             runQueryLogic(val);
         } else if (currentPageType === 'storyQuery') {
-            // 查询故事
             if (!/^\d+$/.test(val) || parseInt(val) < 100 || parseInt(val) > 999) {
                 alert("请输入有效的数字 (100-999)");
                 return;
             }
             handleStoryQuery(val);
         } else if (currentPageType === 'pegs100Query') {
-            // 查询 100 桩
             if (!/^\d+$/.test(val) || parseInt(val) < 0 || parseInt(val) > 99) {
                 alert("请输入有效的数字 (00-99)");
                 return;
@@ -897,14 +1068,15 @@
         hideAllViews();
         views.result.classList.add('active');
         document.getElementById('result-page-title').textContent = title;
-        document.getElementById('result-page-content').innerHTML = text; // 使用 innerHTML 支持加粗
-        document.getElementById('result-view-next-btn').style.display = 'none'; // reset
+        document.getElementById('result-page-content').innerHTML = text;
+        document.getElementById('result-view-next-btn').style.display = 'none';
 
         nextActionCallback = nextCallback;
         const btn = document.getElementById('result-next-btn');
-        if (nextCallback || currentPageType === 'multi') {
+        // 非多重记忆和非默写测试(功能2)的返回按钮逻辑
+        if (nextCallback || currentPageType === 'multi' || currentPageType === 'storyQuery' || currentPageType === 'pegs100Query') {
             btn.style.display = 'block';
-            btn.textContent = "继续此项操作"; // 默认文本
+            btn.textContent = "继续此项操作";
         } else {
             btn.style.display = 'none';
         }
@@ -925,7 +1097,7 @@
                 return;
             }
 
-            // 将下一轮的设置作为当前设置
+            // 确保将用户在结果页设置栏的范围选择应用到主输入页的 Checkbox 状态上
             const cb100 = document.getElementById('multi-range-100');
             const cb1000 = document.getElementById('multi-range-1000');
             cb100.checked = nextSelectedRanges.includes('100');
@@ -945,21 +1117,18 @@
         const nextNum = currentQueryNumber + 1;
 
         if (currentPageType === 'query') {
-            // 编码查询 (000-999)
             if (nextNum > 999) {
                 alert("已到达 999，无法查询下一个数字。");
                 return;
             }
             runQueryLogic(String(nextNum));
         } else if (currentPageType === 'storyQuery') {
-            // 故事查询 (100-999)
             if (nextNum > 999) {
                 alert("已到达 999，无法查询下一个数字。");
                 return;
             }
             handleStoryQuery(String(nextNum));
         } else if (currentPageType === 'pegs100Query') {
-            // 100桩查询 (00-99)
             if (nextNum > 99) {
                 alert("已到达 99，无法查询下一个数字。");
                 return;
@@ -983,7 +1152,6 @@
                 Object.assign(dataVar, JSON.parse(cachedData));
                 dataKeys = Object.keys(dataVar).length;
                 statusEl.textContent = `${displayName}: 已加载 (缓存, ${dataKeys} 条)`;
-                console.log(`Loaded ${displayName} from cache`);
                 return true;
             } catch(e) {
                 localStorage.removeItem(cacheKey);
@@ -999,7 +1167,6 @@
             localStorage.setItem(cacheKey, JSON.stringify(json));
             dataKeys = Object.keys(json).length;
             statusEl.textContent = `${displayName}: 已加载 (${dataKeys} 条)`;
-            console.log(`Loaded ${displayName} from network`);
             return true;
         } catch(e) {
             console.error(`Failed to load ${displayName} data:`, e);
@@ -1010,6 +1177,9 @@
     }
 
     async function initData() {
+        // 加载权重数据
+        loadQuizWeights();
+
         // 异步并行加载
         await Promise.all([
             fetchJsonData(JSON_URL, CACHE_KEY, number_encodings, 'data-status', '编码'),
@@ -1017,23 +1187,26 @@
             fetchJsonData(CODE100_URL, CODE100_CACHE_KEY, number_pegs100, 'pegs100-status', '100桩')
         ]);
 
-        // 确保更新状态后再次刷新菜单
         showMenuUI();
     }
 
     function clearCacheAndReload() {
-        const confirmed = confirm("确定要清除本地缓存并重新下载所有数据吗？（用于数据更新）");
+        const confirmed = confirm("确定要清除本地缓存并重新下载所有数据吗？（用于数据更新）\n注意：这将同时清除默写测试的权重记录。");
         if (confirmed) {
             localStorage.removeItem(CACHE_KEY);
             localStorage.removeItem(STORY_CACHE_KEY);
-            localStorage.removeItem(CODE100_CACHE_KEY); // 新增清除 100 桩缓存
+            localStorage.removeItem(CODE100_CACHE_KEY);
+            localStorage.removeItem(WEIGHTS_CACHE_KEY); // 新增：清除权重缓存
+
             number_encodings = {};
             number_stories = {};
-            number_pegs100 = {}; // 清空 100 桩数据
+            number_pegs100 = {};
+            quizWeights = {}; // 清空内存中的权重
+
             document.getElementById('data-status').textContent = "编码: 缓存已清除，正在重新加载...";
             document.getElementById('story-status').textContent = "故事: 缓存已清除，正在重新加载...";
             document.getElementById('pegs100-status').textContent = "100桩: 缓存已清除，正在重新加载...";
-            initData(); // 重新加载数据
+            initData();
         }
     }
 
