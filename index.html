@@ -757,7 +757,7 @@
         if (!answer) return;
 
         const correct = getEncoding(currentQuizTargetNum);
-        const isCorrect = answer === correct;
+        const isCorrect = answer.length>=2 && correct.indexOf(answer)!=-1;
         const resultBox = document.getElementById('quiz-result-box');
 
         // 核心修改：更新权重
