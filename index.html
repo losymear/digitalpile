@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数字桩记忆训练v0.113</title>
+    <title>数字桩记忆训练v0.114</title>
     <style>
         /* --- 基础样式 --- */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8f8f8; color: #333; }
@@ -158,7 +158,7 @@
 </head>
 <body>
 <div class="container">
-    <h1 id="main-title">数字桩记忆训练</h1>
+    <h1 id="main-title">数字桩记忆训练v0.114</h1>
     <div class="data-status" id="data-status">编码: 缺失</div>
     <div class="data-status" id="story-status" style="margin-top: -20px;">故事: 缺失</div>
     <div class="data-status" id="pegs100-status" style="margin-top: -20px;">100桩: 缺失</div>
@@ -173,21 +173,21 @@
                 <div class="menu-item-title">📝 2. 默写测试 (输编码)</div>
                 <div class="menu-item-detail">看数字 -> 输入文字 -> 系统自动判分 (加权)</div>
             </li>
+            <li class="menu-item pegs100-required" onclick="showPegs100MenuUI()">
+                <div class="menu-item-title">🧮 3. 100 数字桩训练 (00-99)</div>
+                <div class="menu-item-detail">训练 00 到 99 的数字桩</div>
+            </li>
             <li class="menu-item" onclick="showInputPage('multi')">
-                <div class="menu-item-title">🔢 3. 多重数字记忆</div>
+                <div class="menu-item-title">🔢 4. 多重数字记忆</div>
                 <div class="menu-item-detail">一次性记忆 N 个数字</div>
             </li>
             <li class="menu-item" onclick="showInputPage('query')">
-                <div class="menu-item-title">🔍 4. 查询桩子编码</div>
+                <div class="menu-item-title">🔍 5. 查询桩子编码</div>
                 <div class="menu-item-detail">查数字对应的编码 (000-999)</div>
             </li>
             <li class="menu-item" onclick="showStoryMenuUI()">
-                <div class="menu-item-title">📖 5. 数字桩故事浏览 (新增)</div>
+                <div class="menu-item-title">📖 6. 数字桩故事浏览 (新增)</div>
                 <div class="menu-item-detail">查看 100-999 所有故事</div>
-            </li>
-            <li class="menu-item pegs100-required" onclick="showPegs100MenuUI()">
-                <div class="menu-item-title">🧮 6. 100 数字桩训练 (00-99)</div>
-                <div class="menu-item-detail">训练 00 到 99 的数字桩</div>
             </li>
         </ul>
         <button class="clear-cache-btn" onclick="clearCacheAndReload()">
