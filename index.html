@@ -81,6 +81,40 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.08);
             border-color: #91d5ff;
         }
+        
+        /* --- 100桩列表样式 (新增优化) --- */
+        .peg-grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
+        .peg-card {
+            background-color: white;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .peg-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #007aff;
+        }
+        .peg-card-num {
+            display: block;
+            font-size: 20px;
+            font-weight: 800;
+            color: #007aff;
+            margin-bottom: 4px;
+        }
+        .peg-card-word {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
 
         /* --- 故事展示卡片样式 (美化版) --- */
         .story-display-wrapper {
@@ -266,8 +300,8 @@
 
     <div id="pegs100-list-page" class="current-view">
         <div class="result-title">00-99 数字桩列表</div>
-        <div class="result-box" id="pegs100-list-content" style="text-align: left; font-size: 14px;">
-        </div>
+        <ul id="pegs100-list-content" class="peg-grid">
+        </ul>
         <button onclick="showPegs100MenuUI()">返回 100 桩菜单</button>
     </div>
 
@@ -655,15 +689,25 @@
         generatePegs100List();
     }
 
+    // [修改] 生成漂亮的 100 桩网格列表
     function generatePegs100List() {
         const listEl = document.getElementById('pegs100-list-content');
         listEl.innerHTML = '';
         const numbers = Object.keys(number_pegs100).sort();
-        let content = '';
+        
         numbers.forEach(num => {
-            content += `${num}: ${number_pegs100[num]}\n`;
+            const li = document.createElement('li');
+            li.className = 'peg-card';
+            li.onclick = () => {
+                handlePegs100Query(num);
+            };
+            
+            li.innerHTML = `
+                <span class="peg-card-num">${num}</span>
+                <span class="peg-card-word">${number_pegs100[num]}</span>
+            `;
+            listEl.appendChild(li);
         });
-        listEl.textContent = content;
     }
 
     // ======================================================
