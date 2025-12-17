@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数字桩记忆训练v0.116</title>
+    <title>数字桩记忆训练v0.117</title>
     <style>
         /* --- 基础样式 --- */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8f8f8; color: #333; }
@@ -61,7 +61,7 @@
         .quiz-wrong { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .quiz-info { font-size: 12px; color: #999; margin-bottom: 20px; }
 
-        /* 故事列表样式 (美化版) */
+        /* 故事列表样式 */
         .story-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
         .story-list-item { 
             background: linear-gradient(145deg, #ffffff, #f0f8ff);
@@ -82,40 +82,72 @@
             border-color: #91d5ff;
         }
 
-        /* 故事展示卡片样式 (新) */
-        .story-card {
-            background-color: #fff;
-            padding: 5px 0;
+        /* --- 故事展示卡片样式 (美化版) --- */
+        .story-display-wrapper {
+            /* 替换原先的 result-box 样式，如果是在故事页面使用的话 */
+            background-color: transparent; 
+            border: none; 
+            padding: 0; 
+            white-space: normal;
+        }
+        
+        .story-card-pretty {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .story-card-header {
+            background: linear-gradient(135deg, #007aff 0%, #00c6ff 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
             text-align: left;
         }
+
+        .story-card-range {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.25);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(5px);
+        }
+
         .story-card-title {
-            font-size: 18px;
+            font-size: 22px;
             font-weight: bold;
-            color: #d9534f;
-            text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #ccc;
+            margin: 0;
+            padding-right: 70px; /* 避免遮挡右上角 */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.3;
         }
-        .story-card-content {
-            font-size: 16px;
+
+        .story-card-body {
+            padding: 25px;
+            font-size: 17px;
             line-height: 1.8;
-            color: #333;
+            color: #444;
             text-align: justify;
+            background-color: #fff;
         }
-        .story-card-meta {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #999;
-            text-align: right;
-        }
+
         .story-highlight {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 2px 4px;
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 6px;
             border-radius: 4px;
+            color: #0050b3;
             font-weight: bold;
-            border-bottom: 2px solid #ffecb5;
+            border-bottom: none; /* 移除旧样式 */
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
         }
 
         /* 权重弹窗样式 */
@@ -150,7 +182,7 @@
 </head>
 <body>
 <div class="container">
-    <h1 id="main-title">数字桩记忆训练v0.116</h1>
+    <h1 id="main-title">数字桩记忆训练v0.117</h1>
     <div class="data-status" id="data-status">编码: 缺失</div>
     <div class="data-status" id="story-status" style="margin-top: -20px;">故事: 缺失</div>
     <div class="data-status" id="pegs100-status" style="margin-top: -20px;">100桩: 缺失</div>
@@ -479,7 +511,7 @@
         return number_pegs100[paddedNumStr] || `[缺失]`;
     }
 
-    // [修改] 新的故事内容解析函数，支持标题和HTML高亮
+    // [修改] 美化版的故事内容生成，使用新的样式结构
     function getStoryContentHTML(numStr) {
         const num = parseInt(numStr);
         const start = Math.floor(num / 10) * 10;
@@ -490,27 +522,26 @@
         let content = rawText;
 
         // 尝试解析 【标题】内容 格式
-        // 匹配开头是【...】的内容
         const titleMatch = rawText.match(/^【(.*?)】(.*)/s);
         if (titleMatch) {
             title = titleMatch[1];
             content = titleMatch[2];
         } else {
-            // 如果没有标题，使用默认格式
-            title = `段落 ${key}`;
+            title = `数字桩 ${key}`;
         }
 
-        // 高亮处理：将 "关键词(103)" 这种格式加粗高亮
-        // 逻辑：匹配任何非标点符号的字符序列，后面紧跟 (当前数字)
+        // 高亮处理
         const highlightRegex = new RegExp(`([^\\p{P}\\p{S}\\s]*\\(${numStr}\\))`, 'gu');
-        // 替换为 span 标签
         content = content.replace(highlightRegex, '<span class="story-highlight">$1</span>');
 
+        // 返回新的美化 HTML 结构
         return `
-            <div class="story-card">
-                <div class="story-card-title">${title}</div>
-                <div class="story-card-content">${content.trim()}</div>
-                <div class="story-card-meta">所属段落: ${key}</div>
+            <div class="story-card-pretty">
+                <div class="story-card-header">
+                    <span class="story-card-range">${key}</span>
+                    <div class="story-card-title">${title}</div>
+                </div>
+                <div class="story-card-body">${content.trim()}</div>
             </div>
         `;
     }
@@ -591,7 +622,7 @@
             li.textContent = key;
             li.onclick = () => {
                 const startNum = parseInt(key.split('-')[0]);
-                handleStoryQuery(String(startNum)); // 点击段落直接进入该段落第一个数字的故事视图
+                handleStoryQuery(String(startNum)); 
             };
             listEl.appendChild(li);
         });
@@ -633,7 +664,6 @@
         document.getElementById('drill-max').value = lastDrillMax;
     }
 
-    // 模式选择处理
     function selectDrillMode(el) {
         document.querySelectorAll('.drill-mode-label').forEach(l => l.classList.remove('selected'));
         el.classList.add('selected');
@@ -650,11 +680,9 @@
         lastDrillMin = min; 
         lastDrillMax = max;
         
-        // 切换到工作视图
         hideAllViews();
         views.drillWork.classList.add('active');
         
-        // 更新标题
         const modeText = drillMode === 'num2code' ? '数字 -> 编码' : '编码 -> 数字';
         document.getElementById('drill-work-title').textContent = `训练: ${modeText}`;
 
@@ -668,14 +696,12 @@
         const qEl = document.getElementById('fc-question');
         const aEl = document.getElementById('fc-answer');
         
-        // 重置状态
         aEl.classList.remove('visible');
         
         if (drillMode === 'num2code') {
             qEl.textContent = targetNum;
             aEl.textContent = encoding;
         } else {
-            // 编码 -> 数字模式
             if (encoding === '[缺失]') {
                 qEl.textContent = "[无编码]";
             } else {
@@ -806,7 +832,6 @@
         setTimeout(() => {
             const conf = confirm(`记忆 ${N} 个数字 (范围: ${titleRange}):\n${listStr}\n\n准备好查看答案吗？`);
             if(conf) {
-                // 多重记忆不显示翻页按钮
                 showResult("✅ 多重记忆答案", `**数字 (范围: ${titleRange}):**\n${answerStr}`, false, () => {});
 
                 document.getElementById('result-setting-bar').style.display = 'block';
@@ -884,7 +909,6 @@
         currentPageType = 'query';
         const paddedStr = String(num).padStart(3, '0');
         
-        // 显示结果，开启导航按钮
         showResult(`🔍 查询编码: ${paddedStr}`, `数字: ${paddedStr}\n编码: ${getEncoding(paddedStr)}`, true, () => showInputPage('query'));
         document.getElementById('result-next-btn').textContent = "继续查询";
     }
@@ -896,7 +920,6 @@
         currentPageType = 'storyQuery';
         const paddedStr = String(num).padStart(3, '0');
 
-        // [修改] 使用新的 getStoryContentHTML 函数获取富文本内容
         showResult(`📖 查询故事: ${paddedStr}`, getStoryContentHTML(paddedStr), true, () => showInputPage('storyQuery'));
         document.getElementById('result-next-btn').textContent = "继续查询";
     }
@@ -916,25 +939,39 @@
 
     function handleNav(direction) {
         if (currentQueryNumber === null) return;
-        let nextNum = currentQueryNumber + direction;
+        let nextNum;
 
-        if (currentPageType === 'query') {
-            // 000-999 循环
-            if (nextNum > 999) nextNum = 0;
-            if (nextNum < 0) nextNum = 999;
-            runQueryLogic(String(nextNum));
-        } 
-        else if (currentPageType === 'storyQuery') {
-            // 100-999 循环
-            if (nextNum > 999) nextNum = 100;
-            if (nextNum < 100) nextNum = 999;
+        if (currentPageType === 'storyQuery') {
+            // [修改] 故事模式下，按“段落”翻页 (加减10)，并处理循环
+            // 如果当前是 335，想去下一段，目标应该是 340 (而不是 345)
+            // 如果当前是 335，想去上一段，目标应该是 320 (而不是 325)
+            
+            // 1. 获取当前段落的起始数字 (例如 330)
+            let currentSegmentStart = Math.floor(currentQueryNumber / 10) * 10;
+            
+            // 2. 计算目标段落起始 (330 + 10 = 340)
+            nextNum = currentSegmentStart + (direction * 10);
+            
+            // 3. 边界循环处理 (100-990 段)
+            if (nextNum > 990) nextNum = 100;
+            if (nextNum < 100) nextNum = 990;
+            
             handleStoryQuery(String(nextNum));
-        } 
-        else if (currentPageType === 'pegs100Query') {
-            // 00-99 循环
-            if (nextNum > 99) nextNum = 0;
-            if (nextNum < 0) nextNum = 99;
-            handlePegs100Query(String(nextNum));
+            
+        } else {
+            // 其他模式 (编码查询、100桩) 保持按 1 翻页
+            nextNum = currentQueryNumber + direction;
+
+            if (currentPageType === 'query') {
+                if (nextNum > 999) nextNum = 0;
+                if (nextNum < 0) nextNum = 999;
+                runQueryLogic(String(nextNum));
+            } 
+            else if (currentPageType === 'pegs100Query') {
+                if (nextNum > 99) nextNum = 0;
+                if (nextNum < 0) nextNum = 99;
+                handlePegs100Query(String(nextNum));
+            }
         }
     }
 
@@ -960,10 +997,19 @@
         views.result.classList.add('active');
         document.getElementById('result-page-title').textContent = title;
         
-        // [修改] 使用 innerHTML 以支持故事页面的富文本格式 (卡片、标题、高亮)
-        document.getElementById('result-page-content').innerHTML = text; 
+        // 故事页面使用特殊样式容器，其他页面使用普通 result-box
+        const contentEl = document.getElementById('result-page-content');
+        contentEl.innerHTML = text; 
+        
+        // 如果是 HTML 富文本 (故事卡片)，移除 result-box 默认的边框和背景，以免双重边框
+        if (text.includes('story-card-pretty')) {
+            contentEl.classList.remove('result-box');
+            contentEl.classList.add('story-display-wrapper');
+        } else {
+            contentEl.classList.add('result-box');
+            contentEl.classList.remove('story-display-wrapper');
+        }
 
-        // 控制导航按钮显示
         const navGroup = document.getElementById('result-nav-group');
         navGroup.style.display = showNav ? 'flex' : 'none';
 
@@ -975,13 +1021,11 @@
             btn.textContent = "继续下一组数字";
         } else if (nextCallback) {
             btn.style.display = 'block';
-            // 按钮文字在各自逻辑里设置
         } else {
             btn.style.display = 'none';
         }
     }
 
-    // 结果页的“返回”按钮逻辑 (根据入口决定返回哪里)
     function handleResultBack() {
         if (currentPageType === 'storyQuery' || currentPageType === 'storyList') {
             showStoryMenuUI();
