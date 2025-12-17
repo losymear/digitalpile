@@ -511,7 +511,7 @@
         return number_pegs100[paddedNumStr] || `[缺失]`;
     }
 
-    // [修改] 美化版的故事内容生成，使用新的样式结构
+    // [修改] 美化版的故事内容生成，已添加点击加载图片功能
     function getStoryContentHTML(numStr) {
         const num = parseInt(numStr);
         const start = Math.floor(num / 10) * 10;
@@ -534,14 +534,28 @@
         const highlightRegex = new RegExp(`([^\\p{P}\\p{S}\\s]*\\(${numStr}\\))`, 'gu');
         content = content.replace(highlightRegex, '<span class="story-highlight">$1</span>');
 
-        // 返回新的美化 HTML 结构
+        // 图片地址构建
+        const imgUrl = `https://raw.githubusercontent.com/losymear/cognition/refs/heads/main/files/img/1000code/${start}.png`;
+
+        // 返回新的美化 HTML 结构，包含图片加载区
         return `
             <div class="story-card-pretty">
                 <div class="story-card-header">
                     <span class="story-card-range">${key}</span>
                     <div class="story-card-title">${title}</div>
                 </div>
-                <div class="story-card-body">${content.trim()}</div>
+                <div class="story-card-body">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <button onclick="this.style.display='none'; document.getElementById('story-img-${start}').src='${imgUrl}'; document.getElementById('story-img-${start}').style.display='inline-block';" 
+                                style="background-color: #f0f2f5; color: #555; border: 1px dashed #ccc; width: auto; padding: 8px 20px; font-size: 14px; border-radius: 20px;">
+                            🖼️ 点击加载配图 (${start})
+                        </button>
+                        <img id="story-img-${start}" src="" alt="故事配图" 
+                             style="display: none; max-width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 10px;">
+                    </div>
+                    
+                    ${content.trim()}
+                </div>
             </div>
         `;
     }
