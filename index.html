@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数字桩记忆训练v0.115</title>
+    <title>数字桩记忆训练v0.116</title>
     <style>
         /* --- 基础样式 --- */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8f8f8; color: #333; }
@@ -61,10 +61,62 @@
         .quiz-wrong { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .quiz-info { font-size: 12px; color: #999; margin-bottom: 20px; }
 
-        /* 故事列表样式 */
-        .story-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-        .story-list-item { background-color: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
-        .story-list-item:hover { background-color: #bae7ff; }
+        /* 故事列表样式 (美化版) */
+        .story-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        .story-list-item { 
+            background: linear-gradient(145deg, #ffffff, #f0f8ff);
+            border: 1px solid #d6e4ff; 
+            border-radius: 8px; 
+            padding: 12px; 
+            text-align: center; 
+            cursor: pointer; 
+            font-weight: 600; 
+            color: #0050b3;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            transition: all 0.2s; 
+        }
+        .story-list-item:hover { 
+            background: #e6f7ff; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            border-color: #91d5ff;
+        }
+
+        /* 故事展示卡片样式 (新) */
+        .story-card {
+            background-color: #fff;
+            padding: 5px 0;
+            text-align: left;
+        }
+        .story-card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d9534f;
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+        .story-card-content {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #333;
+            text-align: justify;
+        }
+        .story-card-meta {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+        }
+        .story-highlight {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            border-bottom: 2px solid #ffecb5;
+        }
 
         /* 权重弹窗样式 */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
@@ -78,7 +130,7 @@
         
         .clear-cache-btn { margin-top: 25px; background-color: #6c757d; color: white; font-size: 14px; padding: 8px; }
 
-        /* --- 新增：功能1 卡片模式样式 --- */
+        /* --- 功能1 卡片模式样式 --- */
         .drill-mode-select { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
         .drill-mode-label { flex: 1; padding: 10px; background-color: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; text-align: center; cursor: pointer; font-size: 14px; }
         .drill-mode-label input { display: none; }
@@ -98,7 +150,7 @@
 </head>
 <body>
 <div class="container">
-    <h1 id="main-title">数字桩记忆训练v0.115</h1>
+    <h1 id="main-title">数字桩记忆训练v0.116</h1>
     <div class="data-status" id="data-status">编码: 缺失</div>
     <div class="data-status" id="story-status" style="margin-top: -20px;">故事: 缺失</div>
     <div class="data-status" id="pegs100-status" style="margin-top: -20px;">100桩: 缺失</div>
@@ -127,7 +179,7 @@
             </li>
             <li class="menu-item" onclick="showStoryMenuUI()">
                 <div class="menu-item-title">📖 6. 数字桩故事浏览</div>
-                <div class="menu-item-detail">查看 100-999 所有故事</div>
+                <div class="menu-item-detail">查看 100-999 所有故事 (带标题)</div>
             </li>
         </ul>
         <button class="clear-cache-btn" onclick="clearCacheAndReload()">
@@ -350,7 +402,7 @@
     const views = {
         menu: document.getElementById('menu-page'),
         drillRange: document.getElementById('drill-range-page'),
-        drillWork: document.getElementById('drill-working-page'), // 新增引用
+        drillWork: document.getElementById('drill-working-page'),
         quizRange: document.getElementById('quiz-range-page'),
         quizWork: document.getElementById('quiz-working-page'),
         input: document.getElementById('input-page'),
@@ -427,17 +479,40 @@
         return number_pegs100[paddedNumStr] || `[缺失]`;
     }
 
-    function getStoryContent(numStr) {
+    // [修改] 新的故事内容解析函数，支持标题和HTML高亮
+    function getStoryContentHTML(numStr) {
         const num = parseInt(numStr);
         const start = Math.floor(num / 10) * 10;
         const key = `${start}-${start + 9}`;
-        const storySegment = number_stories[key] || `[故事段落 ${key} 缺失]`;
-        const regex = new RegExp(`([^\\(]+)\\(${numStr}\\)`);
-        const match = storySegment.match(regex);
-        if (match) {
-            return `【${match[1].trim()}】\n\n所属段落(${key}):\n${storySegment}`;
+        let rawText = number_stories[key] || `[故事段落 ${key} 缺失]`;
+        
+        let title = "未命名故事";
+        let content = rawText;
+
+        // 尝试解析 【标题】内容 格式
+        // 匹配开头是【...】的内容
+        const titleMatch = rawText.match(/^【(.*?)】(.*)/s);
+        if (titleMatch) {
+            title = titleMatch[1];
+            content = titleMatch[2];
+        } else {
+            // 如果没有标题，使用默认格式
+            title = `段落 ${key}`;
         }
-        return `未找到独立桩子，所属段落(${key}):\n\n${storySegment}`;
+
+        // 高亮处理：将 "关键词(103)" 这种格式加粗高亮
+        // 逻辑：匹配任何非标点符号的字符序列，后面紧跟 (当前数字)
+        const highlightRegex = new RegExp(`([^\\p{P}\\p{S}\\s]*\\(${numStr}\\))`, 'gu');
+        // 替换为 span 标签
+        content = content.replace(highlightRegex, '<span class="story-highlight">$1</span>');
+
+        return `
+            <div class="story-card">
+                <div class="story-card-title">${title}</div>
+                <div class="story-card-content">${content.trim()}</div>
+                <div class="story-card-meta">所属段落: ${key}</div>
+            </div>
+        `;
     }
 
     function checkDataLoaded() { return Object.keys(number_encodings).length > 0; }
@@ -547,7 +622,7 @@
     }
 
     // ======================================================
-    // 功能 1 (单次随机训练 - 升级版)
+    // 功能 1 (单次随机训练 - 卡片版)
     // ======================================================
 
     function showDrillRangeUI() {
@@ -612,11 +687,7 @@
 
     function flipDrillCard() {
         const aEl = document.getElementById('fc-answer');
-        if (aEl.classList.contains('visible')) {
-            // 如果已经显示，再次点击可以选做“下一个”或者无操作，
-            // 这里为了体验简单，只做显示逻辑。
-            // 用户通过点击“下一个”按钮切题
-        } else {
+        if (!aEl.classList.contains('visible')) {
             aEl.classList.add('visible');
         }
     }
@@ -825,7 +896,8 @@
         currentPageType = 'storyQuery';
         const paddedStr = String(num).padStart(3, '0');
 
-        showResult(`📖 查询故事: ${paddedStr}`, getStoryContent(paddedStr), true, () => showInputPage('storyQuery'));
+        // [修改] 使用新的 getStoryContentHTML 函数获取富文本内容
+        showResult(`📖 查询故事: ${paddedStr}`, getStoryContentHTML(paddedStr), true, () => showInputPage('storyQuery'));
         document.getElementById('result-next-btn').textContent = "继续查询";
     }
 
@@ -887,7 +959,9 @@
         hideAllViews();
         views.result.classList.add('active');
         document.getElementById('result-page-title').textContent = title;
-        document.getElementById('result-page-content').innerText = text; // 使用 innerText 防止HTML注入，但会保留换行
+        
+        // [修改] 使用 innerHTML 以支持故事页面的富文本格式 (卡片、标题、高亮)
+        document.getElementById('result-page-content').innerHTML = text; 
 
         // 控制导航按钮显示
         const navGroup = document.getElementById('result-nav-group');
